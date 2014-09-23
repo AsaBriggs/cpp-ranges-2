@@ -14,8 +14,8 @@
 namespace range2 {
 
 // To use std::true_type/std::false_type or these custom types? Custom = more searchable.
-struct NotPresent {};
-struct Present {};
+struct NotPresent { typedef NotPresent type; };
+struct Present { typedef Present type; };
 
 
 // Optimise .. don't store the predicate unless it is stateful.
@@ -24,10 +24,33 @@ struct Present {};
 template<typename Predicate>
 struct StorePredicate : std::integral_constant<bool, !std::is_empty<Predicate>::value> {};
 
+
+template<typename Iterator, typename End=NotPresent, typename Count=NotPresent, typename Predicate=NotPresent, typename Enable=void>
+struct Range;
+
+template<typename T>
+struct RangeIterator_Impl;
+
+template<typename Iterator, typename End, typename Count, typename Predicate>
+struct RangeIterator_Impl<Range<Iterator, End, Count, Predicate>>
+{
+  typedef Iterator type;
+};
+
+template<typename T>
+using RangeIterator = typename RangeIterator_Impl<T>::type;
+
+template<typename T>
+using RangeIteratorTraits = std::iterator_traits<RangeIterator<T>>;
+
+template<typename T>
+using RangeCountType = typename RangeIteratorTraits<T>::difference_type;
+
 template<typename Iterator>
 using CountType = typename std::iterator_traits<Iterator>::difference_type;
 
-template<typename Iterator, typename End=NotPresent, typename Count=NotPresent, typename Predicate=NotPresent, typename Enable=void>
+
+template<typename Iterator, typename End, typename Count, typename Predicate, typename Enable>
 struct Range
 {
     typedef Range type;
@@ -61,7 +84,7 @@ struct Range<Iterator, Present, Present, NotPresent>
     typedef Range type;
     Iterator begin;
     Iterator end;
-    CountType<Iterator> count;
+    RangeCountType<type> count;
 
     friend
     constexpr bool operator==(type const& x, type const& y) { return (x.begin == y.begin) && (x.end == y.end) && (x.count == y.count); }
@@ -107,7 +130,7 @@ struct Range<Iterator, Present, Present, Predicate, typename std::enable_if<Stor
     typedef Range type;
     Iterator begin;
     Iterator end;
-    CountType<Iterator> count;
+    RangeCountType<type> count;
     Predicate p;
 
     friend
@@ -123,7 +146,7 @@ struct Range<Iterator, Present, Present, Predicate, typename std::enable_if<!Sto
     typedef Range type;
     Iterator begin;
     Iterator end;
-    CountType<Iterator> count;
+    RangeCountType<type> count;
 
     friend
     constexpr bool operator==(type const& x, type const& y) { return (x.begin == y.begin) && (x.end == y.end) && (x.count == y.count); }
@@ -138,7 +161,7 @@ struct Range<Iterator, NotPresent, Present, NotPresent>
 {
     typedef Range type;
     Iterator begin;
-    CountType<Iterator> count;
+    RangeCountType<type> count;
 
     friend
     constexpr bool operator==(type const& x, type const& y) { return (x.begin == y.begin) && (x.count == y.count); }
@@ -153,7 +176,7 @@ struct Range<Iterator, NotPresent, Present, Predicate, typename std::enable_if<S
 {
     typedef Range type;
     Iterator begin;
-    CountType<Iterator> count;
+    RangeCountType<type> count;
     Predicate p;
 
     friend
@@ -168,7 +191,7 @@ struct Range<Iterator, NotPresent, Present, Predicate, typename std::enable_if<!
 {
     typedef Range type;
     Iterator begin;
-    CountType<Iterator> count;
+    RangeCountType<type> count;
 
     friend
     constexpr bool operator==(type const& x, type const& y) { return (x.begin == y.begin) && (x.count == y.count); }
@@ -190,6 +213,7 @@ struct Range<Iterator, NotPresent, NotPresent, Predicate, typename std::enable_i
     friend
     constexpr bool operator!=(type const& x, type const& y) { return !(x==y); }
 };
+
 
 template<typename Iterator, typename End, typename Count, typename Predicate>
 constexpr Iterator&
@@ -235,15 +259,15 @@ struct HasCount_Impl<Range<Iterator, End, Count, Predicate>> : std::is_same<Coun
 template<typename T>
 using HasCount = HasCount_Impl<T>;
 
-template<typename Iterator, typename End, typename Count, typename Predicate>
-constexpr typename std::enable_if<HasCount<Range<Iterator, End, Count, Predicate>>::value, CountType<Iterator>&>::type
-getCount(Range<Iterator, End, Count, Predicate>& x) {
+template<typename T>
+constexpr typename std::enable_if<HasCount<T>::value, RangeCountType<T>&>::type
+getCount(T& x) {
     return x.count;
 }
 
-template<typename Iterator, typename End, typename Count, typename Predicate>
-constexpr typename std::enable_if<HasCount<Range<Iterator, End, Count, Predicate>>::value, CountType<Iterator> const&>::type
-getCount(Range<Iterator, End, Count, Predicate> const& x) {
+template<typename T>
+constexpr typename std::enable_if<HasCount<T>::value, RangeCountType<T> const&>::type
+getCount(T const& x) {
     return x.count;
 }
 
@@ -280,6 +304,7 @@ template<typename Iterator, typename Iterator2, typename Predicate>
 constexpr typename std::enable_if<std::is_same<Predicate, NotPresent>::value || !StorePredicate<Predicate>::value, Range<Iterator, Present, NotPresent, Predicate>>::type
 addEnd(Range<Iterator, NotPresent, NotPresent, Predicate> x, Iterator2 end)
 {
+  static_assert(std::is_convertible<Iterator2, Iterator>(), "End must be convertible to Range's Iterator");
   return {x.begin, end};
 }
 
@@ -287,6 +312,7 @@ template<typename Iterator, typename Iterator2, typename Predicate>
 constexpr typename std::enable_if<!std::is_same<Predicate, NotPresent>::value && StorePredicate<Predicate>::value, Range<Iterator, Present, NotPresent, Predicate>>::type
 addEnd(Range<Iterator, NotPresent, NotPresent, Predicate> x, Iterator2 end)
 {
+  static_assert(std::is_convertible<Iterator2, Iterator>(), "End must be convertible to Range's Iterator");
   return {x.begin, end, x.p};
 }
 
@@ -294,6 +320,7 @@ template<typename Iterator, typename Iterator2, typename Predicate>
 constexpr typename std::enable_if<std::is_same<Predicate, NotPresent>::value || !StorePredicate<Predicate>::value, Range<Iterator, Present, Present, Predicate>>::type
 addEnd(Range<Iterator, NotPresent, Present, Predicate> x, Iterator2 end)
 {
+  static_assert(std::is_convertible<Iterator2, Iterator>(), "End must be convertible to Range's Iterator");
   return {x.begin, end, x.count};
 }
 
@@ -301,35 +328,40 @@ template<typename Iterator, typename Iterator2, typename Predicate>
 constexpr typename std::enable_if<!std::is_same<Predicate, NotPresent>::value && StorePredicate<Predicate>::value, Range<Iterator, Present, Present, Predicate>>::type
 addEnd(Range<Iterator, NotPresent, Present, Predicate> x, Iterator2 end)
 {
+  static_assert(std::is_convertible<Iterator2, Iterator>(), "End must be convertible to Range's Iterator");
   return {x.begin, end, x.count, x.p};
 }
 
 
-template<typename Iterator, typename Predicate>
+template<typename Iterator, typename Count, typename Predicate>
 constexpr typename std::enable_if<std::is_same<Predicate, NotPresent>::value || !StorePredicate<Predicate>::value, Range<Iterator, NotPresent, Present, Predicate>>::type
-addCount(Range<Iterator, NotPresent, NotPresent, Predicate> x, CountType<Iterator> count)
+addCount(Range<Iterator, NotPresent, NotPresent, Predicate> x, Count count)
 {
+  static_assert(std::is_convertible<Count, CountType<Iterator>>(), "Count must be convertible to Range's CountType");
   return {x.begin, count};
 }
 
-template<typename Iterator, typename Predicate>
+template<typename Iterator, typename Count, typename Predicate>
 constexpr typename std::enable_if<!std::is_same<Predicate, NotPresent>::value && StorePredicate<Predicate>::value, Range<Iterator, NotPresent, Present, Predicate>>::type
-addCount(Range<Iterator, NotPresent, NotPresent, Predicate> x, CountType<Iterator> count)
+addCount(Range<Iterator, NotPresent, NotPresent, Predicate> x, Count count)
 {
+  static_assert(std::is_convertible<Count, CountType<Iterator>>(), "Count must be convertible to Range's CountType");
   return {x.begin, count, x.p};
 }
 
-template<typename Iterator, typename Predicate>
+template<typename Iterator, typename Count, typename Predicate>
 constexpr typename std::enable_if<std::is_same<Predicate, NotPresent>::value || !StorePredicate<Predicate>::value, Range<Iterator, Present, Present, Predicate>>::type
-addCount(Range<Iterator, Present, NotPresent, Predicate> x, CountType<Iterator> count)
+addCount(Range<Iterator, Present, NotPresent, Predicate> x, Count count)
 {
+  static_assert(std::is_convertible<Count, CountType<Iterator>>(), "Count must be convertible to Range's CountType");
   return {x.begin, x.end, count};
 }
 
-template<typename Iterator, typename Predicate>
+template<typename Iterator, typename Count, typename Predicate>
 constexpr typename std::enable_if<!std::is_same<Predicate, NotPresent>::value && StorePredicate<Predicate>::value, Range<Iterator, Present, Present, Predicate>>::type
-addCount(Range<Iterator, Present, NotPresent, Predicate> x, CountType<Iterator> count)
+addCount(Range<Iterator, Present, NotPresent, Predicate> x, Count count)
 {
+  static_assert(std::is_convertible<Count, CountType<Iterator>>(), "Count must be convertible to Range's CountType");
   return {x.begin, x.end, count, x.p};
 }
 

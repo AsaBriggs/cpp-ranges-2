@@ -1,6 +1,7 @@
 #include "range2.h"
 
 #include <functional>
+#include <cassert>
 
 namespace range2 {
 namespace {
@@ -23,24 +24,29 @@ namespace {
 
   constexpr int arr[20] = {1};
 
+  constexpr ptrType begin = &arr[0];
+  constexpr ptrType end = &arr[10];
+  constexpr int count = 5;
+  constexpr StatefulPredicate statefulState = {true};
+
   // Test Range construction
-  constexpr Range<ptrType, NotPresent, NotPresent, NotPresent> r000 = {&arr[0]};
+  constexpr Range<ptrType, NotPresent, NotPresent, NotPresent> r000 = {begin};
 
-  constexpr Range<ptrType, NotPresent, NotPresent, std::less<ptrType>> r001 = {&arr[0]};
-  constexpr Range<ptrType, NotPresent, NotPresent, StatefulPredicate> r002 = {&arr[0], {true}};
+  constexpr Range<ptrType, NotPresent, NotPresent, std::less<ptrType>> r001 = {begin};
+  constexpr Range<ptrType, NotPresent, NotPresent, StatefulPredicate> r002 = {begin, statefulState};
 
-  constexpr Range<ptrType, NotPresent, Present, NotPresent> r010 = {&arr[0], 0u};
-  constexpr Range<ptrType, NotPresent, Present, std::less<ptrType>> r011 = {&arr[0], 0u};
-  constexpr Range<ptrType, NotPresent, Present, StatefulPredicate> r012 = {&arr[0], 0u, {true}};
+  constexpr Range<ptrType, NotPresent, Present, NotPresent> r010 = {begin, count};
+  constexpr Range<ptrType, NotPresent, Present, std::less<ptrType>> r011 = {begin, count};
+  constexpr Range<ptrType, NotPresent, Present, StatefulPredicate> r012 = {begin, count, statefulState};
 
-  constexpr Range<ptrType, Present, NotPresent, NotPresent> r100 = {&arr[0], &arr[0]};
+  constexpr Range<ptrType, Present, NotPresent, NotPresent> r100 = {begin, end};
 
-  constexpr Range<ptrType, Present, NotPresent, std::less<ptrType>> r101 = {&arr[0], &arr[0]};
-  constexpr Range<ptrType, Present, NotPresent, StatefulPredicate> r102 = {&arr[0], &arr[0], {true}};
+  constexpr Range<ptrType, Present, NotPresent, std::less<ptrType>> r101 = {begin, end};
+  constexpr Range<ptrType, Present, NotPresent, StatefulPredicate> r102 = {begin, end, statefulState};
 
-  constexpr Range<ptrType, Present, Present, NotPresent> r110 = {&arr[0], &arr[0], 0u};
-  constexpr Range<ptrType, Present, Present, std::less<ptrType>> r111 = {&arr[0], &arr[0], 0u};
-  constexpr Range<ptrType, Present, Present, StatefulPredicate> r112 = {&arr[0], &arr[0], 0u, {true}};
+  constexpr Range<ptrType, Present, Present, NotPresent> r110 = {begin, end, count};
+  constexpr Range<ptrType, Present, Present, std::less<ptrType>> r111 = {begin, end, count};
+  constexpr Range<ptrType, Present, Present, StatefulPredicate> r112 = {begin, end, count, statefulState};
 
   void testEquality()
   {
@@ -84,38 +90,53 @@ namespace {
 
   void testGetBegin()
   {
-    TEST_ASSERT(&arr[0] == getBegin(r000));
-    TEST_ASSERT(&arr[0] == getBegin(r001));
-    TEST_ASSERT(&arr[0] == getBegin(r002));
-    TEST_ASSERT(&arr[0] == getBegin(r010));
-    TEST_ASSERT(&arr[0] == getBegin(r011));
-    TEST_ASSERT(&arr[0] == getBegin(r012));
-    TEST_ASSERT(&arr[0] == getBegin(r100));
-    TEST_ASSERT(&arr[0] == getBegin(r101));
-    TEST_ASSERT(&arr[0] == getBegin(r102));
-    TEST_ASSERT(&arr[0] == getBegin(r110));
-    TEST_ASSERT(&arr[0] == getBegin(r111));
-    TEST_ASSERT(&arr[0] == getBegin(r112));
+    TEST_ASSERT(begin == getBegin(r000));
+    TEST_ASSERT(begin == getBegin(r001));
+    TEST_ASSERT(begin == getBegin(r002));
+    TEST_ASSERT(begin == getBegin(r010));
+    TEST_ASSERT(begin == getBegin(r011));
+    TEST_ASSERT(begin == getBegin(r012));
+    TEST_ASSERT(begin == getBegin(r100));
+    TEST_ASSERT(begin == getBegin(r101));
+    TEST_ASSERT(begin == getBegin(r102));
+    TEST_ASSERT(begin == getBegin(r110));
+    TEST_ASSERT(begin == getBegin(r111));
+    TEST_ASSERT(begin == getBegin(r112));
+
+    // Test non-const reference path
+    Range<ptrType, NotPresent, NotPresent, NotPresent> tmp = {begin};
+    ptrType& begin2 = getBegin(tmp);
+    assert(begin2 == begin);
   }
 
   void testGetEnd()
   {
-    TEST_ASSERT(&arr[0] == getEnd(r100));
-    TEST_ASSERT(&arr[0] == getEnd(r101));
-    TEST_ASSERT(&arr[0] == getEnd(r102));
-    TEST_ASSERT(&arr[0] == getEnd(r110));
-    TEST_ASSERT(&arr[0] == getEnd(r111));
-    TEST_ASSERT(&arr[0] == getEnd(r112));
+    TEST_ASSERT(end == getEnd(r100));
+    TEST_ASSERT(end == getEnd(r101));
+    TEST_ASSERT(end == getEnd(r102));
+    TEST_ASSERT(end == getEnd(r110));
+    TEST_ASSERT(end == getEnd(r111));
+    TEST_ASSERT(end == getEnd(r112));
+
+    // Test non-const reference path
+    Range<ptrType, Present, NotPresent, NotPresent> tmp = {begin, end};
+    ptrType& end2 = getEnd(tmp);
+    assert(end2 == end);
   }
 
   void testGetCount()
   {
-    TEST_ASSERT(0u == getCount(r010));
-    TEST_ASSERT(0u == getCount(r011));
-    TEST_ASSERT(0u == getCount(r012));
-    TEST_ASSERT(0u == getCount(r110));
-    TEST_ASSERT(0u == getCount(r111));
-    TEST_ASSERT(0u == getCount(r112));
+    TEST_ASSERT(count == getCount(r010));
+    TEST_ASSERT(count == getCount(r011));
+    TEST_ASSERT(count == getCount(r012));
+    TEST_ASSERT(count == getCount(r110));
+    TEST_ASSERT(count == getCount(r111));
+    TEST_ASSERT(count == getCount(r112));
+
+    // Test non-const reference path
+    Range<ptrType, Present, Present, NotPresent> tmp = {begin, end, count};
+    CountType<ptrType>& count2 = getCount(tmp);
+    assert(count2 == count);
   }
 
   void testGetPredicate()
@@ -132,13 +153,13 @@ namespace {
 
   void testAddEnd()
   {
-    TEST_ASSERT(&arr[10] == getEnd(addEnd(r000, &arr[10])));
-    TEST_ASSERT(&arr[10] == getEnd(addEnd(r001, &arr[10])));
-    TEST_ASSERT(&arr[10] == getEnd(addEnd(r002, &arr[10])));
+    TEST_ASSERT(end == getEnd(addEnd(r000, end)));
+    TEST_ASSERT(end == getEnd(addEnd(r001, end)));
+    TEST_ASSERT(end == getEnd(addEnd(r002, end)));
 
-    TEST_ASSERT(&arr[10] == getEnd(addEnd(r010, &arr[10])));
-    TEST_ASSERT(&arr[10] == getEnd(addEnd(r011, &arr[10])));
-    TEST_ASSERT(&arr[10] == getEnd(addEnd(r012, &arr[10])));
+    TEST_ASSERT(end == getEnd(addEnd(r010, end)));
+    TEST_ASSERT(end == getEnd(addEnd(r011, end)));
+    TEST_ASSERT(end == getEnd(addEnd(r012, end)));
   }
 
   void testAddCount()
@@ -157,16 +178,16 @@ namespace {
   void testAddPredicate()
   {
     getPredicate(addPredicate(r000, std::less<ptrType>()));
-    TEST_ASSERT(getPredicate(addPredicate(r000, StatefulPredicate{true})).state);
+    TEST_ASSERT(getPredicate(addPredicate(r000, statefulState)).state);
 
     getPredicate(addPredicate(r010, std::less<ptrType>()));
-    TEST_ASSERT(getPredicate(addPredicate(r010, StatefulPredicate{true})).state);
+    TEST_ASSERT(getPredicate(addPredicate(r010, statefulState)).state);
 
     getPredicate(addPredicate(r100, std::less<ptrType>()));
-    TEST_ASSERT(getPredicate(addPredicate(r100, StatefulPredicate{true})).state);
+    TEST_ASSERT(getPredicate(addPredicate(r100, statefulState)).state);
 
     getPredicate(addPredicate(r110, std::less<ptrType>()));
-    TEST_ASSERT(getPredicate(addPredicate(r110, StatefulPredicate{true})).state);
+    TEST_ASSERT(getPredicate(addPredicate(r110, statefulState)).state);
   }
 } // unnamed namespace
 } // namespace range2

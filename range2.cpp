@@ -26,7 +26,7 @@ namespace {
 
   constexpr ptrType begin = &arr[0];
   constexpr ptrType end = &arr[10];
-  constexpr int count = 5;
+  constexpr int count = 10;
   constexpr StatefulPredicate statefulState = {true};
 
   // Test Range construction
@@ -158,7 +158,6 @@ namespace {
 
     NotPresent tmp2 = getPredicate(r000);
     (void)tmp2;
-
   }
 
   void testAddEnd()
@@ -250,10 +249,87 @@ namespace {
       (void)tmp2;
     }
   }
+
+  void testAddConstantTimeEnd()
+  {
+    {
+      auto tmp = addConstantTimeEnd(r010);
+      assert(count == getCount(tmp));
+      assert(end == getEnd(tmp));
+    }
+
+    {
+      auto tmp = addConstantTimeEnd(r100);
+      assert(end == getEnd(tmp));
+    }
+
+    {
+      auto tmp = addConstantTimeEnd(r110);
+      assert(count == getCount(tmp));
+      assert(end == getEnd(tmp));
+    }
+
+    {
+      auto tmp = addConstantTimeEnd(r000);
+      NotPresent tmp2 = getEnd(tmp);
+      (void)tmp2;
+    }
+
+    {
+      auto tmp = addConstantTimeEnd(r001);
+      NotPresent tmp2 = getEnd(tmp);
+      (void)tmp2;
+    }
+
+    {
+      auto tmp = addConstantTimeEnd(r002);
+      NotPresent tmp2 = getEnd(tmp);
+      (void)tmp2;
+    }
+  }
+
+  void testAddConstantTimeCount()
+  {
+    {
+      auto tmp = addConstantTimeCount(r100);
+      assert(count == getCount(tmp));
+      assert(end == getEnd(tmp));
+    }
+
+    {
+      auto tmp = addConstantTimeCount(r010);
+      assert(count == getCount(tmp));
+    }
+
+    {
+      auto tmp = addConstantTimeCount(r110);
+      assert(count == getCount(tmp));
+      assert(end == getEnd(tmp));
+    }
+
+    {
+      auto tmp = addConstantTimeCount(r000);
+      NotPresent tmp2 = getCount(tmp);
+      (void)tmp2;
+    }
+
+    {
+      auto tmp = addConstantTimeCount(r001);
+      NotPresent tmp2 = getCount(tmp);
+      (void)tmp2;
+    }
+
+    {
+      auto tmp = addConstantTimeCount(r002);
+      NotPresent tmp2 = getCount(tmp);
+      (void)tmp2;
+    }
+
+  }
 } // unnamed namespace
 } // namespace range2
 
-  using namespace range2;
+using namespace range2;
 
 int main()
 {
@@ -272,4 +348,7 @@ int main()
   testRemoveEnd();
   testRemoveCount();
   testRemovePredicate();
+
+  testAddConstantTimeEnd();
+  testAddConstantTimeCount();
 }

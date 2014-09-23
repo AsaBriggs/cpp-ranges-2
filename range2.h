@@ -467,6 +467,84 @@ removePredicate(Range<Iterator, End, Count, Predicate> const& x)
 
 
 
+
+
+template<typename Iterator>
+struct ConstantTimeAdvance : std::is_convertible<typename std::iterator_traits<Iterator>::iterator_category, std::random_access_iterator_tag> {};
+
+template<typename Iterator>
+struct ConstantTimeDifference : std::is_convertible<typename std::iterator_traits<Iterator>::iterator_category, std::random_access_iterator_tag> {};
+
+
+template<typename T>
+struct ConstantTimeEnd : std::false_type {};
+
+template<typename Iterator, typename Count>
+struct ConstantTimeEnd<Range<Iterator, Present, Count, NotPresent>> : std::true_type {};
+
+template<typename Iterator>
+struct ConstantTimeEnd<Range<Iterator, NotPresent, Present, NotPresent>> : ConstantTimeAdvance<Iterator> {};
+
+// Already present
+template<typename Iterator, typename Count, typename Predicate>
+constexpr Range<Iterator, Present, Count, Predicate>
+addConstantTimeEnd(Range<Iterator, Present, Count, Predicate> const& x)
+{
+  return x;
+}
+
+// Can add in constant time (ends up that Predicate = NotPresent)
+template<typename Iterator, typename Count, typename Predicate>
+typename std::enable_if<ConstantTimeEnd<Range<Iterator, NotPresent, Count, Predicate>>::value, Range<Iterator, Present, Count, Predicate>>::type
+addConstantTimeEnd(Range<Iterator, NotPresent, Count, Predicate> const& x)
+{
+  auto tmp = x.begin;
+  std::advance(tmp, x.count);
+  return addEnd(x, tmp);
+}
+
+// Can't add in constant time
+template<typename Iterator, typename Count, typename Predicate>
+constexpr typename std::enable_if<!ConstantTimeEnd<Range<Iterator, NotPresent, Count, Predicate>>::value, Range<Iterator, NotPresent, Count, Predicate>>::type
+addConstantTimeEnd(Range<Iterator, NotPresent, Count, Predicate> const& x)
+{
+  return x;
+}
+
+
+template<typename T>
+struct ConstantTimeCount : std::false_type {};
+
+template<typename Iterator, typename End>
+struct ConstantTimeCount<Range<Iterator, End, Present, NotPresent>> : std::true_type {};
+
+template<typename Iterator>
+struct ConstantTimeCount<Range<Iterator, Present, NotPresent, NotPresent>> : ConstantTimeDifference<Iterator> {};
+
+// Already present
+template<typename Iterator, typename End, typename Predicate>
+constexpr Range<Iterator, End, Present, Predicate>
+addConstantTimeCount(Range<Iterator, End, Present, Predicate> const& x)
+{
+  return x;
+}
+
+// Can add in constant time (ends up that Predicate = NotPresent)
+template<typename Iterator, typename End, typename Predicate>
+constexpr typename std::enable_if<ConstantTimeCount<Range<Iterator, End, NotPresent, Predicate>>::value, Range<Iterator, End, Present, Predicate>>::type
+addConstantTimeCount(Range<Iterator, End, NotPresent, Predicate> const& x)
+{
+  return addCount(x, std::distance(x.begin, x.end));
+}
+
+// Can't add in constant time
+template<typename Iterator, typename End, typename Predicate>
+constexpr typename std::enable_if<!ConstantTimeCount<Range<Iterator, End, NotPresent, Predicate>>::value, Range<Iterator, End, NotPresent, Predicate>>::type
+addConstantTimeCount(Range<Iterator, End, NotPresent, Predicate> const& x)
+{
+  return x;
+}
+
 } // namespace range2
 
 #endif

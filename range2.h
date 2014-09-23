@@ -69,6 +69,9 @@ struct Range
     }
 
     friend
+    constexpr bool empty(type const& x) { return false; }
+
+    friend
     constexpr bool operator==(type const& x, type const& y) { return x.begin == y.begin; }
 
     friend
@@ -87,6 +90,9 @@ struct Range<Iterator, Present, NotPresent, NotPresent>
     {
         return {cmove(begin), cmove(end)};
     }
+
+    friend
+    constexpr bool empty(type const& x) { return x.begin == x.end; }
 
     friend
     constexpr bool operator==(type const& x, type const& y) { return (x.begin == y.begin) && (x.end == y.end); }
@@ -111,6 +117,9 @@ struct Range<Iterator, Present, Present, NotPresent>
     }
 
     friend
+    constexpr bool empty(type const& x) { return RangeCountType<type>(0) == x.count; }
+
+    friend
     constexpr bool operator==(type const& x, type const& y) { return (x.begin == y.begin) && (x.end == y.end) && (x.count == y.count); }
 
     friend
@@ -132,6 +141,9 @@ struct Range<Iterator, Present, NotPresent, Predicate, typename std::enable_if<S
     }
 
     friend
+    constexpr bool empty(type const& x) { return (x.begin == x.end) && !x.p(x.begin); }
+
+    friend
     constexpr bool operator==(type const& x, type const& y) { return (x.begin == y.begin) && (x.end == y.end) && (x.p == y.p); }
 
     friend
@@ -139,7 +151,7 @@ struct Range<Iterator, Present, NotPresent, Predicate, typename std::enable_if<S
 };
 
 template<typename Iterator, typename Predicate>
-struct Range<Iterator, Present, NotPresent, Predicate, typename std::enable_if<!StorePredicate<Predicate>::value, void>::type>
+struct Range<Iterator, Present, NotPresent, Predicate, typename std::enable_if<!std::is_same<NotPresent, Predicate>::value && !StorePredicate<Predicate>::value, void>::type>
 {
     typedef Range type;
     Iterator begin;
@@ -150,6 +162,9 @@ struct Range<Iterator, Present, NotPresent, Predicate, typename std::enable_if<!
     {
       return {cmove(begin), cmove(end)};
     }
+
+    friend
+    constexpr bool empty(type const& x) { return (x.begin == x.end) || !Predicate{}(x.begin); }
 
     friend
     constexpr bool operator==(type const& x, type const& y) { return (x.begin == y.begin) && (x.end == y.end); }
@@ -175,6 +190,9 @@ struct Range<Iterator, Present, Present, Predicate, typename std::enable_if<Stor
     }
 
     friend
+    constexpr bool empty(type const& x) { return (RangeCountType<type>(0) == x.count) || !x.p(x.begin); }
+
+    friend
     constexpr bool operator==(type const& x, type const& y) { return (x.begin == y.begin) && (x.end == y.end) && (x.count == y.count) && (x.p == y.p); }
 
     friend
@@ -182,7 +200,7 @@ struct Range<Iterator, Present, Present, Predicate, typename std::enable_if<Stor
 };
 
 template<typename Iterator, typename Predicate>
-struct Range<Iterator, Present, Present, Predicate, typename std::enable_if<!StorePredicate<Predicate>::value, void>::type>
+struct Range<Iterator, Present, Present, Predicate, typename std::enable_if<!std::is_same<NotPresent, Predicate>::value && !StorePredicate<Predicate>::value, void>::type>
 {
     typedef Range type;
     Iterator begin;
@@ -194,6 +212,9 @@ struct Range<Iterator, Present, Present, Predicate, typename std::enable_if<!Sto
     {
       return {cmove(begin), cmove(end), cmove(count)};
     }
+
+    friend
+    constexpr bool empty(type const& x) { return (RangeCountType<type>(0) == x.count) || !Predicate{}(x.begin); }
 
     friend
     constexpr bool operator==(type const& x, type const& y) { return (x.begin == y.begin) && (x.end == y.end) && (x.count == y.count); }
@@ -215,6 +236,9 @@ struct Range<Iterator, NotPresent, Present, NotPresent>
     {
         return {cmove(begin), cmove(count)};
     }
+
+    friend
+    constexpr bool empty(type const& x) { return (RangeCountType<type>(0) == x.count); }
 
     friend
     constexpr bool operator==(type const& x, type const& y) { return (x.begin == y.begin) && (x.count == y.count); }
@@ -239,6 +263,9 @@ struct Range<Iterator, NotPresent, Present, Predicate, typename std::enable_if<S
     }
 
     friend
+    constexpr bool empty(type const& x) { return (RangeCountType<type>(0) == x.count) || !x.p(x.begin); }
+
+    friend
     constexpr bool operator==(type const& x, type const& y) { return (x.begin == y.begin) && (x.count == y.count) && (x.p == y.p); }
 
     friend
@@ -246,7 +273,7 @@ struct Range<Iterator, NotPresent, Present, Predicate, typename std::enable_if<S
 };
 
 template<typename Iterator, typename Predicate>
-struct Range<Iterator, NotPresent, Present, Predicate, typename std::enable_if<!StorePredicate<Predicate>::value, void>::type>
+struct Range<Iterator, NotPresent, Present, Predicate, typename std::enable_if<!std::is_same<NotPresent, Predicate>::value && !StorePredicate<Predicate>::value, void>::type>
 {
     typedef Range type;
     Iterator begin;
@@ -257,6 +284,9 @@ struct Range<Iterator, NotPresent, Present, Predicate, typename std::enable_if<!
     {
         return {cmove(begin), cmove(count)};
     }
+
+    friend
+    constexpr bool empty(type const& x) { return (RangeCountType<type>(0) == x.count) || !Predicate{}(x.begin); }
 
     friend
     constexpr bool operator==(type const& x, type const& y) { return (x.begin == y.begin) && (x.count == y.count); }
@@ -279,6 +309,9 @@ struct Range<Iterator, NotPresent, NotPresent, Predicate, typename std::enable_i
     }
 
     friend
+    constexpr bool empty(type const& x) { return !x.p(x.begin); }
+
+    friend
     constexpr bool operator==(type const& x, type const& y) { return (x.begin == y.begin) && (x.p == y.p); }
 
     friend
@@ -286,7 +319,7 @@ struct Range<Iterator, NotPresent, NotPresent, Predicate, typename std::enable_i
 };
 
 template<typename Iterator, typename Predicate>
-struct Range<Iterator, NotPresent, NotPresent, Predicate, typename std::enable_if<!StorePredicate<Predicate>::value, void>::type>
+struct Range<Iterator, NotPresent, NotPresent, Predicate, typename std::enable_if<!std::is_same<NotPresent, Predicate>::value && !StorePredicate<Predicate>::value, void>::type>
 {
     typedef Range type;
     Iterator begin;
@@ -296,6 +329,9 @@ struct Range<Iterator, NotPresent, NotPresent, Predicate, typename std::enable_i
     {
       return {cmove(begin)};
     }
+
+    friend
+    constexpr bool empty(type const& x) { return !Predicate{}(x.begin); }
 
     friend
     constexpr bool operator==(type const& x, type const& y) { return (x.begin == y.begin); }

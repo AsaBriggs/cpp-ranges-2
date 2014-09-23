@@ -1,6 +1,5 @@
 #include "range2.h"
 
-#include <functional>
 #include <cassert>
 
 namespace range2 {
@@ -10,10 +9,21 @@ namespace {
 
   typedef int const* ptrType;
 
+  struct StatelessPredicate
+  {
+    constexpr bool operator()(ptrType) const { return true; }
+
+    friend
+    constexpr bool operator==(StatelessPredicate const& x, StatelessPredicate const& y)
+    {
+      return true;
+    }
+  };
+
   struct StatefulPredicate
   {
     bool state;
-    bool operator()(ptrType, ptrType) const { return state; }
+    constexpr bool operator()(ptrType) const { return state; }
 
     friend
     constexpr bool operator==(StatefulPredicate const& x, StatefulPredicate const& y)
@@ -32,20 +42,20 @@ namespace {
   // Test Range construction
   constexpr Range<ptrType, NotPresent, NotPresent, NotPresent> r000 = {begin};
 
-  constexpr Range<ptrType, NotPresent, NotPresent, std::less<ptrType>> r001 = {begin};
+  constexpr Range<ptrType, NotPresent, NotPresent, StatelessPredicate> r001 = {begin};
   constexpr Range<ptrType, NotPresent, NotPresent, StatefulPredicate> r002 = {begin, statefulState};
 
   constexpr Range<ptrType, NotPresent, Present, NotPresent> r010 = {begin, count};
-  constexpr Range<ptrType, NotPresent, Present, std::less<ptrType>> r011 = {begin, count};
+  constexpr Range<ptrType, NotPresent, Present, StatelessPredicate> r011 = {begin, count};
   constexpr Range<ptrType, NotPresent, Present, StatefulPredicate> r012 = {begin, count, statefulState};
 
   constexpr Range<ptrType, Present, NotPresent, NotPresent> r100 = {begin, end};
 
-  constexpr Range<ptrType, Present, NotPresent, std::less<ptrType>> r101 = {begin, end};
+  constexpr Range<ptrType, Present, NotPresent, StatelessPredicate> r101 = {begin, end};
   constexpr Range<ptrType, Present, NotPresent, StatefulPredicate> r102 = {begin, end, statefulState};
 
   constexpr Range<ptrType, Present, Present, NotPresent> r110 = {begin, end, count};
-  constexpr Range<ptrType, Present, Present, std::less<ptrType>> r111 = {begin, end, count};
+  constexpr Range<ptrType, Present, Present, StatelessPredicate> r111 = {begin, end, count};
   constexpr Range<ptrType, Present, Present, StatefulPredicate> r112 = {begin, end, count, statefulState};
 
   void testEquality()
@@ -186,16 +196,16 @@ namespace {
 
   void testAddPredicate()
   {
-    getPredicate(addPredicate(r000, std::less<ptrType>()));
+    getPredicate(addPredicate(r000, StatelessPredicate()));
     TEST_ASSERT(getPredicate(addPredicate(r000, statefulState)).state);
 
-    getPredicate(addPredicate(r010, std::less<ptrType>()));
+    getPredicate(addPredicate(r010, StatelessPredicate()));
     TEST_ASSERT(getPredicate(addPredicate(r010, statefulState)).state);
 
-    getPredicate(addPredicate(r100, std::less<ptrType>()));
+    getPredicate(addPredicate(r100, StatelessPredicate()));
     TEST_ASSERT(getPredicate(addPredicate(r100, statefulState)).state);
 
-    getPredicate(addPredicate(r110, std::less<ptrType>()));
+    getPredicate(addPredicate(r110, StatelessPredicate()));
     TEST_ASSERT(getPredicate(addPredicate(r110, statefulState)).state);
   }
 
@@ -326,6 +336,25 @@ namespace {
     }
 
   }
+
+  void testEmpty()
+  {
+    assert(!empty(r000));
+    assert(!empty(r001));
+    assert(!empty(r002));
+
+    assert(!empty(r010));
+    assert(!empty(r011));
+    assert(!empty(r012));
+
+    assert(!empty(r100));
+    assert(!empty(r101));
+    assert(!empty(r102));
+
+    assert(!empty(r110));
+    assert(!empty(r111));
+    assert(!empty(r112));
+  }
 } // unnamed namespace
 } // namespace range2
 
@@ -351,4 +380,6 @@ int main()
 
   testAddConstantTimeEnd();
   testAddConstantTimeCount();
+
+  testEmpty();
 }

@@ -1,10 +1,11 @@
 #include "range2.h"
 
 #include <functional>
-#include <cassert>
 
 namespace range2 {
 namespace {
+
+#define TEST_ASSERT(x) static_assert(x, "Unexpected")
 
   struct StatefulPredicate
   {
@@ -19,98 +20,98 @@ namespace {
   };
 
   // Test Range construction
-  Range<int*, NotPresent, NotPresent, NotPresent> r000 = {nullptr};
+  constexpr Range<int*, NotPresent, NotPresent, NotPresent> r000 = {nullptr};
 
-  Range<int*, NotPresent, NotPresent, std::less<int*>> r001 = {nullptr};
-  Range<int*, NotPresent, NotPresent, StatefulPredicate> r002 = {nullptr, {}};
+  constexpr Range<int*, NotPresent, NotPresent, std::less<int*>> r001 = {nullptr};
+  constexpr Range<int*, NotPresent, NotPresent, StatefulPredicate> r002 = {nullptr, {}};
 
-  Range<int*, NotPresent, Present, NotPresent> r010 = {nullptr, 0u};
-  Range<int*, NotPresent, Present, std::less<int*>> r011 = {nullptr, 0u};
-  Range<int*, NotPresent, Present, StatefulPredicate> r012 = {nullptr, 0u, {}};
+  constexpr Range<int*, NotPresent, Present, NotPresent> r010 = {nullptr, 0u};
+  constexpr Range<int*, NotPresent, Present, std::less<int*>> r011 = {nullptr, 0u};
+  constexpr Range<int*, NotPresent, Present, StatefulPredicate> r012 = {nullptr, 0u, {}};
 
-  Range<int*, Present, NotPresent, NotPresent> r100 = {nullptr, nullptr};
+  constexpr Range<int*, Present, NotPresent, NotPresent> r100 = {nullptr, nullptr};
 
-  Range<int*, Present, NotPresent, std::less<int*>> r101 = {nullptr, nullptr};
-  Range<int*, Present, NotPresent, StatefulPredicate> r102 = {nullptr, nullptr, {}};
+  constexpr Range<int*, Present, NotPresent, std::less<int*>> r101 = {nullptr, nullptr};
+  constexpr Range<int*, Present, NotPresent, StatefulPredicate> r102 = {nullptr, nullptr, {}};
 
-  Range<int*, Present, Present, NotPresent> r110 = {nullptr, nullptr, 0u};
-  Range<int*, Present, Present, std::less<int*>> r111 = {nullptr, nullptr, 0u};
-  Range<int*, Present, Present, StatefulPredicate> r112 = {nullptr, nullptr, 0u, {}};
+  constexpr Range<int*, Present, Present, NotPresent> r110 = {nullptr, nullptr, 0u};
+  constexpr Range<int*, Present, Present, std::less<int*>> r111 = {nullptr, nullptr, 0u};
+  constexpr Range<int*, Present, Present, StatefulPredicate> r112 = {nullptr, nullptr, 0u, {}};
 
   void testEquality()
   {
-    assert(r000 == r000);
-    assert(r001 == r001);
-    assert(r002 == r002);
+    TEST_ASSERT(r000 == r000);
+    TEST_ASSERT(r001 == r001);
+    TEST_ASSERT(r002 == r002);
 
-    assert(r010 == r010);
-    assert(r011 == r011);
-    assert(r012 == r012);
+    TEST_ASSERT(r010 == r010);
+    TEST_ASSERT(r011 == r011);
+    TEST_ASSERT(r012 == r012);
 
-    assert(r100 == r100);
-    assert(r101 == r101);
-    assert(r102 == r102);
+    TEST_ASSERT(r100 == r100);
+    TEST_ASSERT(r101 == r101);
+    TEST_ASSERT(r102 == r102);
 
-    assert(r110 == r110);
-    assert(r111 == r111);
-    assert(r112 == r112);
+    TEST_ASSERT(r110 == r110);
+    TEST_ASSERT(r111 == r111);
+    TEST_ASSERT(r112 == r112);
 
   }
 
   void testInequality()
   {
-    assert(!(r000 != r000));
-    assert(!(r001 != r001));
-    assert(!(r002 != r002));
+    TEST_ASSERT(!(r000 != r000));
+    TEST_ASSERT(!(r001 != r001));
+    TEST_ASSERT(!(r002 != r002));
 
-    assert(!(r010 != r010));
-    assert(!(r011 != r011));
-    assert(!(r012 != r012));
+    TEST_ASSERT(!(r010 != r010));
+    TEST_ASSERT(!(r011 != r011));
+    TEST_ASSERT(!(r012 != r012));
 
-    assert(!(r100 != r100));
-    assert(!(r101 != r101));
-    assert(!(r102 != r102));
+    TEST_ASSERT(!(r100 != r100));
+    TEST_ASSERT(!(r101 != r101));
+    TEST_ASSERT(!(r102 != r102));
 
-    assert(!(r110 != r110));
-    assert(!(r111 != r111));
-    assert(!(r112 != r112));
+    TEST_ASSERT(!(r110 != r110));
+    TEST_ASSERT(!(r111 != r111));
+    TEST_ASSERT(!(r112 != r112));
 
   }
 
   void testGetBegin()
   {
-    assert(nullptr == getBegin(r000));
-    assert(nullptr == getBegin(r001));
-    assert(nullptr == getBegin(r002));
-    assert(nullptr == getBegin(r010));
-    assert(nullptr == getBegin(r011));
-    assert(nullptr == getBegin(r012));
-    assert(nullptr == getBegin(r100));
-    assert(nullptr == getBegin(r101));
-    assert(nullptr == getBegin(r102));
-    assert(nullptr == getBegin(r110));
-    assert(nullptr == getBegin(r111));
-    assert(nullptr == getBegin(r112));
+    TEST_ASSERT(nullptr == getBegin(r000));
+    TEST_ASSERT(nullptr == getBegin(r001));
+    TEST_ASSERT(nullptr == getBegin(r002));
+    TEST_ASSERT(nullptr == getBegin(r010));
+    TEST_ASSERT(nullptr == getBegin(r011));
+    TEST_ASSERT(nullptr == getBegin(r012));
+    TEST_ASSERT(nullptr == getBegin(r100));
+    TEST_ASSERT(nullptr == getBegin(r101));
+    TEST_ASSERT(nullptr == getBegin(r102));
+    TEST_ASSERT(nullptr == getBegin(r110));
+    TEST_ASSERT(nullptr == getBegin(r111));
+    TEST_ASSERT(nullptr == getBegin(r112));
   }
 
   void testGetEnd()
   {
-    assert(nullptr == getEnd(r100));
-    assert(nullptr == getEnd(r101));
-    assert(nullptr == getEnd(r102));
-    assert(nullptr == getEnd(r110));
-    assert(nullptr == getEnd(r111));
-    assert(nullptr == getEnd(r112));
+    TEST_ASSERT(nullptr == getEnd(r100));
+    TEST_ASSERT(nullptr == getEnd(r101));
+    TEST_ASSERT(nullptr == getEnd(r102));
+    TEST_ASSERT(nullptr == getEnd(r110));
+    TEST_ASSERT(nullptr == getEnd(r111));
+    TEST_ASSERT(nullptr == getEnd(r112));
   }
 
   void testGetCount()
   {
-    assert(0u == getCount(r010));
-    assert(0u == getCount(r011));
-    assert(0u == getCount(r012));
-    assert(0u == getCount(r110));
-    assert(0u == getCount(r111));
-    assert(0u == getCount(r112));
+    TEST_ASSERT(0u == getCount(r010));
+    TEST_ASSERT(0u == getCount(r011));
+    TEST_ASSERT(0u == getCount(r012));
+    TEST_ASSERT(0u == getCount(r110));
+    TEST_ASSERT(0u == getCount(r111));
+    TEST_ASSERT(0u == getCount(r112));
   }
 
   void testGetPredicate()
@@ -129,26 +130,26 @@ namespace {
   {
     int x = 0;
 
-    assert(&x == getEnd(addEnd(r000, &x)));
-    assert(&x == getEnd(addEnd(r001, &x)));
-    assert(&x == getEnd(addEnd(r002, &x)));
+    TEST_ASSERT(&x == getEnd(addEnd(r000, &x)));
+    TEST_ASSERT(&x == getEnd(addEnd(r001, &x)));
+    TEST_ASSERT(&x == getEnd(addEnd(r002, &x)));
 
-    assert(&x == getEnd(addEnd(r010, &x)));
-    assert(&x == getEnd(addEnd(r011, &x)));
-    assert(&x == getEnd(addEnd(r012, &x)));
+    TEST_ASSERT(&x == getEnd(addEnd(r010, &x)));
+    TEST_ASSERT(&x == getEnd(addEnd(r011, &x)));
+    TEST_ASSERT(&x == getEnd(addEnd(r012, &x)));
   }
 
   void testAddCount()
   {
-    int x = 123;
+    constexpr int x = 123;
 
-    assert(x == getCount(addCount(r000, x)));
-    assert(x == getCount(addCount(r001, x)));
-    assert(x == getCount(addCount(r002, x)));
+    TEST_ASSERT(x == getCount(addCount(r000, x)));
+    TEST_ASSERT(x == getCount(addCount(r001, x)));
+    TEST_ASSERT(x == getCount(addCount(r002, x)));
 
-    assert(x == getCount(addCount(r100, x)));
-    assert(x == getCount(addCount(r101, x)));
-    assert(x == getCount(addCount(r102, x)));
+    TEST_ASSERT(x == getCount(addCount(r100, x)));
+    TEST_ASSERT(x == getCount(addCount(r101, x)));
+    TEST_ASSERT(x == getCount(addCount(r102, x)));
   }
 
   void testAddPredicate()

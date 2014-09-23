@@ -13,6 +13,13 @@
 
 namespace range2 {
 
+// cmove = constexpr move ... in C++11 std::move is not a constexpr!
+template<typename T>
+constexpr inline __attribute__ ((visibility("hidden")))
+typename std::remove_reference<T>::type&& cmove( T&& t ) {
+  return static_cast<typename std::remove_reference<T>::type&&>(t);
+}
+
 // To use std::true_type/std::false_type or these custom types? Custom = more searchable.
 struct NotPresent { typedef NotPresent type; };
 struct Present { typedef Present type; };
@@ -56,6 +63,11 @@ struct Range
     typedef Range type;
     Iterator begin;
 
+    static constexpr type make(Iterator begin)
+    {
+        return {cmove(begin)};
+    }
+
     friend
     constexpr bool operator==(type const& x, type const& y) { return x.begin == y.begin; }
 
@@ -69,6 +81,11 @@ struct Range<Iterator, Present, NotPresent, NotPresent>
     typedef Range type;
     Iterator begin;
     Iterator end;
+
+    static constexpr type make(Iterator begin, Iterator end)
+    {
+        return {cmove(begin), cmove(end)};
+    }
 
     friend
     constexpr bool operator==(type const& x, type const& y) { return (x.begin == y.begin) && (x.end == y.end); }
@@ -86,6 +103,11 @@ struct Range<Iterator, Present, Present, NotPresent>
     Iterator end;
     RangeCountType<type> count;
 
+    static constexpr type make(Iterator begin, Iterator end, RangeCountType<type> count)
+    {
+        return {cmove(begin), cmove(end), cmove(count)};
+    }
+
     friend
     constexpr bool operator==(type const& x, type const& y) { return (x.begin == y.begin) && (x.end == y.end) && (x.count == y.count); }
 
@@ -101,6 +123,11 @@ struct Range<Iterator, Present, NotPresent, Predicate, typename std::enable_if<S
     Iterator end;
     Predicate p;
 
+    static constexpr type make(Iterator begin, Iterator end, Predicate p)
+    {
+        return {cmove(begin), cmove(end), cmove(p)};
+    }
+
     friend
     constexpr bool operator==(type const& x, type const& y) { return (x.begin == y.begin) && (x.end == y.end) && (x.p == y.p); }
 
@@ -114,7 +141,16 @@ struct Range<Iterator, Present, NotPresent, Predicate, typename std::enable_if<!
     typedef Range type;
     Iterator begin;
     Iterator end;
-    Predicate p;
+
+    static constexpr type make(Iterator begin, Iterator end)
+    {
+        return {cmove(begin), cmove(end)};
+    }
+
+    static constexpr type make(Iterator begin, Iterator end, Predicate p)
+    {
+        return make(cmove(begin), cmove(end));
+    }
 
     friend
     constexpr bool operator==(type const& x, type const& y) { return (x.begin == y.begin) && (x.end == y.end); }
@@ -133,6 +169,11 @@ struct Range<Iterator, Present, Present, Predicate, typename std::enable_if<Stor
     RangeCountType<type> count;
     Predicate p;
 
+    static constexpr type make(Iterator begin, Iterator end, RangeCountType<type> count, Predicate p)
+    {
+        return {cmove(begin), cmove(end), cmove(count), cmove(p)};
+    }
+
     friend
     constexpr bool operator==(type const& x, type const& y) { return (x.begin == y.begin) && (x.end == y.end) && (x.count == y.count) && (x.p == y.p); }
 
@@ -148,6 +189,16 @@ struct Range<Iterator, Present, Present, Predicate, typename std::enable_if<!Sto
     Iterator end;
     RangeCountType<type> count;
 
+    static constexpr type make(Iterator begin, Iterator end, RangeCountType<type> count)
+    {
+        return {cmove(begin), cmove(end), cmove(count)};
+    }
+
+    static constexpr type make(Iterator begin, Iterator end, RangeCountType<type> count, Predicate p)
+    {
+        return make(cmove(begin), cmove(end), cmove(count));
+    }
+
     friend
     constexpr bool operator==(type const& x, type const& y) { return (x.begin == y.begin) && (x.end == y.end) && (x.count == y.count); }
 
@@ -162,6 +213,11 @@ struct Range<Iterator, NotPresent, Present, NotPresent>
     typedef Range type;
     Iterator begin;
     RangeCountType<type> count;
+
+    static constexpr type make(Iterator begin, RangeCountType<type> count)
+    {
+        return {cmove(begin), cmove(count)};
+    }
 
     friend
     constexpr bool operator==(type const& x, type const& y) { return (x.begin == y.begin) && (x.count == y.count); }
@@ -179,6 +235,11 @@ struct Range<Iterator, NotPresent, Present, Predicate, typename std::enable_if<S
     RangeCountType<type> count;
     Predicate p;
 
+    static constexpr type make(Iterator begin, RangeCountType<type> count, Predicate p)
+    {
+      return {cmove(begin), cmove(count), cmove(p)};
+    }
+
     friend
     constexpr bool operator==(type const& x, type const& y) { return (x.begin == y.begin) && (x.count == y.count) && (x.p == y.p); }
 
@@ -193,6 +254,16 @@ struct Range<Iterator, NotPresent, Present, Predicate, typename std::enable_if<!
     Iterator begin;
     RangeCountType<type> count;
 
+    static constexpr type make(Iterator begin, RangeCountType<type> count)
+    {
+        return {cmove(begin), cmove(count)};
+    }
+
+    static constexpr type make(Iterator begin, RangeCountType<type> count, Predicate p)
+    {
+        return make(cmove(begin), cmove(count));
+    }
+
     friend
     constexpr bool operator==(type const& x, type const& y) { return (x.begin == y.begin) && (x.count == y.count); }
 
@@ -206,6 +277,11 @@ struct Range<Iterator, NotPresent, NotPresent, Predicate, typename std::enable_i
     typedef Range type;
     Iterator begin;
     Predicate p;
+
+    static constexpr type make(Iterator begin, Predicate p)
+    {
+        return {cmove(begin), cmove(p)};
+    }
 
     friend
     constexpr bool operator==(type const& x, type const& y) { return (x.begin == y.begin) && (x.p == y.p); }
@@ -305,7 +381,7 @@ constexpr typename std::enable_if<std::is_same<Predicate, NotPresent>::value || 
 addEnd(Range<Iterator, NotPresent, NotPresent, Predicate> x, Iterator2 end)
 {
   static_assert(std::is_convertible<Iterator2, Iterator>(), "End must be convertible to Range's Iterator");
-  return {x.begin, end};
+  return {cmove(x.begin), cmove(end)};
 }
 
 template<typename Iterator, typename Iterator2, typename Predicate>
@@ -313,7 +389,7 @@ constexpr typename std::enable_if<!std::is_same<Predicate, NotPresent>::value &&
 addEnd(Range<Iterator, NotPresent, NotPresent, Predicate> x, Iterator2 end)
 {
   static_assert(std::is_convertible<Iterator2, Iterator>(), "End must be convertible to Range's Iterator");
-  return {x.begin, end, x.p};
+  return {cmove(x.begin), cmove(end), cmove(x.p)};
 }
 
 template<typename Iterator, typename Iterator2, typename Predicate>
@@ -321,7 +397,7 @@ constexpr typename std::enable_if<std::is_same<Predicate, NotPresent>::value || 
 addEnd(Range<Iterator, NotPresent, Present, Predicate> x, Iterator2 end)
 {
   static_assert(std::is_convertible<Iterator2, Iterator>(), "End must be convertible to Range's Iterator");
-  return {x.begin, end, x.count};
+  return {cmove(x.begin), cmove(end), cmove(x.count)};
 }
 
 template<typename Iterator, typename Iterator2, typename Predicate>
@@ -329,7 +405,7 @@ constexpr typename std::enable_if<!std::is_same<Predicate, NotPresent>::value &&
 addEnd(Range<Iterator, NotPresent, Present, Predicate> x, Iterator2 end)
 {
   static_assert(std::is_convertible<Iterator2, Iterator>(), "End must be convertible to Range's Iterator");
-  return {x.begin, end, x.count, x.p};
+  return {cmove(x.begin), cmove(end), cmove(x.count), cmove(x.p)};
 }
 
 
@@ -338,7 +414,7 @@ constexpr typename std::enable_if<std::is_same<Predicate, NotPresent>::value || 
 addCount(Range<Iterator, NotPresent, NotPresent, Predicate> x, Count count)
 {
   static_assert(std::is_convertible<Count, CountType<Iterator>>(), "Count must be convertible to Range's CountType");
-  return {x.begin, count};
+  return {cmove(x.begin), cmove(count)};
 }
 
 template<typename Iterator, typename Count, typename Predicate>
@@ -346,7 +422,7 @@ constexpr typename std::enable_if<!std::is_same<Predicate, NotPresent>::value &&
 addCount(Range<Iterator, NotPresent, NotPresent, Predicate> x, Count count)
 {
   static_assert(std::is_convertible<Count, CountType<Iterator>>(), "Count must be convertible to Range's CountType");
-  return {x.begin, count, x.p};
+  return {cmove(x.begin), cmove(count), cmove(x.p)};
 }
 
 template<typename Iterator, typename Count, typename Predicate>
@@ -354,7 +430,7 @@ constexpr typename std::enable_if<std::is_same<Predicate, NotPresent>::value || 
 addCount(Range<Iterator, Present, NotPresent, Predicate> x, Count count)
 {
   static_assert(std::is_convertible<Count, CountType<Iterator>>(), "Count must be convertible to Range's CountType");
-  return {x.begin, x.end, count};
+  return {cmove(x.begin), cmove(x.end), cmove(count)};
 }
 
 template<typename Iterator, typename Count, typename Predicate>
@@ -362,7 +438,7 @@ constexpr typename std::enable_if<!std::is_same<Predicate, NotPresent>::value &&
 addCount(Range<Iterator, Present, NotPresent, Predicate> x, Count count)
 {
   static_assert(std::is_convertible<Count, CountType<Iterator>>(), "Count must be convertible to Range's CountType");
-  return {x.begin, x.end, count, x.p};
+  return {cmove(x.begin), cmove(x.end), cmove(count), cmove(x.p)};
 }
 
 
@@ -370,56 +446,56 @@ template<typename Iterator, typename Predicate>
 constexpr typename std::enable_if<StorePredicate<Predicate>::value, Range<Iterator, NotPresent, NotPresent, Predicate>>::type
 addPredicate(Range<Iterator, NotPresent, NotPresent, NotPresent> x, Predicate p)
 {
-  return {x.begin, p};
+  return {cmove(x.begin), cmove(p)};
 }
 
 template<typename Iterator, typename Predicate>
 constexpr typename std::enable_if<!StorePredicate<Predicate>::value, Range<Iterator, NotPresent, NotPresent, Predicate>>::type
 addPredicate(Range<Iterator, NotPresent, NotPresent, NotPresent> x, Predicate p)
 {
-  return {x.begin};
+  return {cmove(x.begin)};
 }
 
 template<typename Iterator, typename Predicate>
 constexpr typename std::enable_if<StorePredicate<Predicate>::value, Range<Iterator, NotPresent, Present, Predicate>>::type
 addPredicate(Range<Iterator, NotPresent, Present, NotPresent> x, Predicate p)
 {
-  return {x.begin, x.count, p};
+  return {cmove(x.begin), cmove(x.count), cmove(p)};
 }
 
 template<typename Iterator, typename Predicate>
 constexpr typename std::enable_if<!StorePredicate<Predicate>::value, Range<Iterator, NotPresent, Present, Predicate>>::type
 addPredicate(Range<Iterator, NotPresent, Present, NotPresent> x, Predicate p)
 {
-  return {x.begin, x.count};
+  return {cmove(x.begin), cmove(x.count)};
 }
 
 template<typename Iterator, typename Predicate>
 constexpr typename std::enable_if<StorePredicate<Predicate>::value, Range<Iterator, Present, NotPresent, Predicate>>::type
 addPredicate(Range<Iterator, Present, NotPresent, NotPresent> x, Predicate p)
 {
-  return {x.begin, x.end, p};
+  return {cmove(x.begin), cmove(x.end), cmove(p)};
 }
 
 template<typename Iterator, typename Predicate>
 constexpr typename std::enable_if<!StorePredicate<Predicate>::value, Range<Iterator, Present, NotPresent, Predicate>>::type
 addPredicate(Range<Iterator, Present, NotPresent, NotPresent> x, Predicate p)
 {
-  return {x.begin, x.end};
+  return {cmove(x.begin), cmove(x.end)};
 }
 
 template<typename Iterator, typename Predicate>
 constexpr typename std::enable_if<StorePredicate<Predicate>::value, Range<Iterator, Present, Present, Predicate>>::type
 addPredicate(Range<Iterator, Present, Present, NotPresent> x, Predicate p)
 {
-  return {x.begin, x.end, x.count, p};
+  return {cmove(x.begin), cmove(x.end), cmove(x.count), cmove(p)};
 }
 
 template<typename Iterator, typename Predicate>
 constexpr typename std::enable_if<!StorePredicate<Predicate>::value, Range<Iterator, Present, Present, Predicate>>::type
 addPredicate(Range<Iterator, Present, Present, NotPresent> x, Predicate p)
 {
-  return {x.begin, x.end, x.count};
+  return {cmove(x.begin), cmove(x.end), cmove(x.count)};
 }
 
 } // namespace range2

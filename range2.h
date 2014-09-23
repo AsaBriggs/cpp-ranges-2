@@ -20,7 +20,6 @@ typename std::remove_reference<T>::type&& cmove( T&& t ) {
   return static_cast<typename std::remove_reference<T>::type&&>(t);
 }
 
-// To use std::true_type/std::false_type or these custom types? Custom = more searchable.
 struct NotPresent { typedef NotPresent type; };
 struct Present { typedef Present type; };
 
@@ -425,6 +424,7 @@ template<typename Iterator, typename End, typename Count, typename Predicate, ty
 constexpr Range<Iterator, Present, Count, Predicate>
 addEnd(Range<Iterator, End, Count, Predicate> const& x, Iterator2 end)
 {
+  static_assert(std::is_convertible<Iterator2, Iterator>::value, "End iterator must be convertible to Range's Iterator");
   return Range<Iterator, Present, Count, Predicate>::make(getBegin(x), cmove(end), getCount(x), getPredicate(x));
 }
 
@@ -432,8 +432,8 @@ template<typename Iterator, typename End, typename Count, typename Predicate, ty
 constexpr Range<Iterator, End, Present, Predicate>
 addCount(Range<Iterator, End, Count, Predicate> const& x, Count2 count)
 {
-  static_assert(std::is_convertible<Count2, CountType<Iterator>>(), "Count must be convertible to Range's CountType");
-  return Range<Iterator, End, Present, Predicate>::make(getBegin(x), getEnd(x), cmove(count), getPredicate(x));
+  static_assert(std::is_convertible<Count2, CountType<Iterator>>::value, "Count must be convertible to Range's CountType");
+  return Range<Iterator, End, Present, Predicate>::make(getBegin(x), getEnd(x), count, getPredicate(x));
 }
 
 template<typename Iterator, typename End, typename Count, typename Predicate, typename Predicate2>
@@ -442,6 +442,30 @@ addPredicate(Range<Iterator, End, Count, Predicate> const& x, Predicate2 p)
 {
   return Range<Iterator, End, Count, Predicate2>::make(getBegin(x), getEnd(x), getCount(x), p);
 }
+
+
+template<typename Iterator, typename End, typename Count, typename Predicate>
+constexpr Range<Iterator, NotPresent, Count, Predicate>
+removeEnd(Range<Iterator, End, Count, Predicate> const& x)
+{
+  return Range<Iterator, NotPresent, Count, Predicate>::make(getBegin(x), {}, getCount(x), getPredicate(x));
+}
+
+template<typename Iterator, typename End, typename Count, typename Predicate>
+constexpr Range<Iterator, End, NotPresent, Predicate>
+removeCount(Range<Iterator, End, Count, Predicate> const& x)
+{
+  return Range<Iterator, End, NotPresent, Predicate>::make(getBegin(x), getEnd(x), {}, getPredicate(x));
+}
+
+template<typename Iterator, typename End, typename Count, typename Predicate>
+constexpr Range<Iterator, End, Count, NotPresent>
+removePredicate(Range<Iterator, End, Count, Predicate> const& x)
+{
+  return Range<Iterator, End, Count, NotPresent>::make(getBegin(x), getEnd(x), getCount(x), {});
+}
+
+
 
 } // namespace range2
 

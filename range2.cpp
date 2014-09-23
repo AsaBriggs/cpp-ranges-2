@@ -122,6 +122,9 @@ namespace {
     Range<ptrType, Present, NotPresent, NotPresent> tmp = {begin, end};
     ptrType& end2 = getEnd(tmp);
     assert(end2 == end);
+
+    NotPresent tmp2 = getEnd(r000);
+    (void)tmp2;
   }
 
   void testGetCount()
@@ -137,6 +140,9 @@ namespace {
     Range<ptrType, Present, Present, NotPresent> tmp = {begin, end, count};
     CountType<ptrType>& count2 = getCount(tmp);
     assert(count2 == count);
+
+    NotPresent tmp2 = getCount(r000);
+    (void)tmp2;
   }
 
   void testGetPredicate()
@@ -149,6 +155,10 @@ namespace {
     TEST_ASSERT(getPredicate(r102).state);
     getPredicate(r111);
     TEST_ASSERT(getPredicate(r112).state);
+
+    NotPresent tmp2 = getPredicate(r000);
+    (void)tmp2;
+
   }
 
   void testAddEnd()
@@ -189,6 +199,57 @@ namespace {
     getPredicate(addPredicate(r110, std::less<ptrType>()));
     TEST_ASSERT(getPredicate(addPredicate(r110, statefulState)).state);
   }
+
+  void testRemoveEnd()
+  {
+    {
+      auto tmp = removeEnd(r100);
+      NotPresent tmp2 = getEnd(tmp);
+      (void)tmp2;
+    }
+
+    {
+      auto tmp = removeEnd(r012);
+      NotPresent tmp2 = getEnd(tmp);
+      (void)tmp2;
+    }
+  }
+
+  void testRemoveCount()
+  {
+    {
+      auto tmp = removeCount(r010);
+      NotPresent tmp2 = getCount(tmp);
+      (void)tmp2;
+    }
+
+    {
+      auto tmp = removeCount(r102);
+      NotPresent tmp2 = getCount(tmp);
+      (void)tmp2;
+    }
+  }
+
+  void testRemovePredicate()
+  {
+    {
+      auto tmp = removePredicate(r011);
+      NotPresent tmp2 = getPredicate(tmp);
+      (void)tmp2;
+    }
+
+    {
+      auto tmp = removePredicate(r012);
+      NotPresent tmp2 = getPredicate(tmp);
+      (void)tmp2;
+    }
+
+    {
+      auto tmp = removePredicate(r110);
+      NotPresent tmp2 = getPredicate(tmp);
+      (void)tmp2;
+    }
+  }
 } // unnamed namespace
 } // namespace range2
 
@@ -207,4 +268,8 @@ int main()
   testAddEnd();
   testAddCount();
   testAddPredicate();
+
+  testRemoveEnd();
+  testRemoveCount();
+  testRemovePredicate();
 }

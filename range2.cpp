@@ -10,6 +10,12 @@ namespace {
   {
     bool state;
     bool operator()(int*, int*) const { return state; }
+
+    friend
+    constexpr bool operator==(StatefulPredicate const& x, StatefulPredicate const& y)
+    {
+      return x.state == y.state;
+    }
   };
 
   // Test Range construction
@@ -30,6 +36,46 @@ namespace {
   Range<int*, Present, Present, NotPresent> r110 = {nullptr, nullptr, 0u};
   Range<int*, Present, Present, std::less<int*>> r111 = {nullptr, nullptr, 0u};
   Range<int*, Present, Present, StatefulPredicate> r112 = {nullptr, nullptr, 0u, {}};
+
+  void testEquality()
+  {
+    assert(r000 == r000);
+    assert(r001 == r001);
+    assert(r002 == r002);
+
+    assert(r010 == r010);
+    assert(r011 == r011);
+    assert(r012 == r012);
+
+    assert(r100 == r100);
+    assert(r101 == r101);
+    assert(r102 == r102);
+
+    assert(r110 == r110);
+    assert(r111 == r111);
+    assert(r112 == r112);
+
+  }
+
+  void testInequality()
+  {
+    assert(!(r000 != r000));
+    assert(!(r001 != r001));
+    assert(!(r002 != r002));
+
+    assert(!(r010 != r010));
+    assert(!(r011 != r011));
+    assert(!(r012 != r012));
+
+    assert(!(r100 != r100));
+    assert(!(r101 != r101));
+    assert(!(r102 != r102));
+
+    assert(!(r110 != r110));
+    assert(!(r111 != r111));
+    assert(!(r112 != r112));
+
+  }
 
   void testGetBegin()
   {
@@ -67,18 +113,58 @@ namespace {
     assert(0u == getCount(r112));
   }
 
-  void testGetPred()
+  void testGetPredicate()
   {
-    getPred(r001);
-    getPred(r002);
-    getPred(r011);
-    getPred(r012);
-    getPred(r101);
-    getPred(r102);
-    getPred(r111);
-    getPred(r112);
+    getPredicate(r001);
+    getPredicate(r002);
+    getPredicate(r011);
+    getPredicate(r012);
+    getPredicate(r101);
+    getPredicate(r102);
+    getPredicate(r111);
+    getPredicate(r112);
   }
 
+  void testAddEnd()
+  {
+    int x = 0;
+
+    assert(&x == getEnd(addEnd(r000, &x)));
+    assert(&x == getEnd(addEnd(r001, &x)));
+    assert(&x == getEnd(addEnd(r002, &x)));
+
+    assert(&x == getEnd(addEnd(r010, &x)));
+    assert(&x == getEnd(addEnd(r011, &x)));
+    assert(&x == getEnd(addEnd(r012, &x)));
+  }
+
+  void testAddCount()
+  {
+    int x = 123;
+
+    assert(x == getCount(addCount(r000, x)));
+    assert(x == getCount(addCount(r001, x)));
+    assert(x == getCount(addCount(r002, x)));
+
+    assert(x == getCount(addCount(r100, x)));
+    assert(x == getCount(addCount(r101, x)));
+    assert(x == getCount(addCount(r102, x)));
+  }
+
+  void testAddPredicate()
+  {
+    getPredicate(addPredicate(r000, std::less<int*>()));
+    getPredicate(addPredicate(r000, StatefulPredicate()));
+
+    getPredicate(addPredicate(r010, std::less<int*>()));
+    getPredicate(addPredicate(r010, StatefulPredicate()));
+
+    getPredicate(addPredicate(r100, std::less<int*>()));
+    getPredicate(addPredicate(r100, StatefulPredicate()));
+
+    getPredicate(addPredicate(r110, std::less<int*>()));
+    getPredicate(addPredicate(r110, StatefulPredicate()));
+  }
 } // unnamed namespace
 } // namespace range2
 
@@ -86,8 +172,15 @@ namespace {
 
 int main()
 {
+  testEquality();
+  testInequality();
+
   testGetBegin();
   testGetEnd();
   testGetCount();
-  testGetPred();
+  testGetPredicate();
+
+  testAddEnd();
+  testAddCount();
+  testAddPredicate();
 }

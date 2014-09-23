@@ -1,8 +1,15 @@
 #ifndef INCLUDED_RANGE2
 #define INCLUDED_RANGE2
 
+#ifndef INCLUDED_TYPE_TRAITS
+#define INCLUDED_TYPE_TRAITS
 #include <type_traits>
+#endif
+
+#ifndef INCLUDED_ITERATOR
+#define INCLUDED_ITERATOR
 #include <iterator>
+#endif
 
 namespace range2 {
 
@@ -15,8 +22,7 @@ struct Present {};
 // Do this by only specialising storage for when Predicate is Present and stateful, wrapping the getting of the predicate
 // with a layer of enable_if.
 template<typename Predicate>
-struct StorePredicate : std::integral_constant<bool, !std::is_empty<Predicate>::value>
-{};
+struct StorePredicate : std::integral_constant<bool, !std::is_empty<Predicate>::value> {};
 
 template<typename Iterator>
 using CountType = typename std::iterator_traits<Iterator>::difference_type;
@@ -28,10 +34,10 @@ struct Range
     Iterator begin;
 
     friend
-    bool operator==(type const& x, type const& y) { return x.begin == y.begin; }
+    constexpr bool operator==(type const& x, type const& y) { return x.begin == y.begin; }
 
     friend
-    bool operator!=(type const& x, type const& y) { return !(x==y); }
+    constexpr bool operator!=(type const& x, type const& y) { return !(x==y); }
 };
 
 template<typename Iterator>
@@ -42,10 +48,10 @@ struct Range<Iterator, Present, NotPresent, NotPresent>
     Iterator end;
 
     friend
-    bool operator==(type const& x, type const& y) { return (x.begin == y.begin) && (x.end == y.end); }
+    constexpr bool operator==(type const& x, type const& y) { return (x.begin == y.begin) && (x.end == y.end); }
 
     friend
-    bool operator!=(type const& x, type const& y) { return !(x==y); }
+    constexpr bool operator!=(type const& x, type const& y) { return !(x==y); }
 };
 
 
@@ -58,10 +64,10 @@ struct Range<Iterator, Present, Present, NotPresent>
     CountType<Iterator> count;
 
     friend
-    bool operator==(type const& x, type const& y) { return (x.begin == y.begin) && (x.end == y.end) && (x.count == y.count); }
+    constexpr bool operator==(type const& x, type const& y) { return (x.begin == y.begin) && (x.end == y.end) && (x.count == y.count); }
 
     friend
-    bool operator!=(type const& x, type const& y) { return !(x==y); }
+    constexpr bool operator!=(type const& x, type const& y) { return !(x==y); }
 };
 
 template<typename Iterator, typename Predicate>
@@ -73,10 +79,10 @@ struct Range<Iterator, Present, NotPresent, Predicate, typename std::enable_if<S
     Predicate p;
 
     friend
-    bool operator==(type const& x, type const& y) { return (x.begin == y.begin) && (x.end == y.end) && (x.p == y.p); }
+    constexpr bool operator==(type const& x, type const& y) { return (x.begin == y.begin) && (x.end == y.end) && (x.p == y.p); }
 
     friend
-    bool operator!=(type const& x, type const& y) { return !(x==y); }
+    constexpr bool operator!=(type const& x, type const& y) { return !(x==y); }
 };
 
 template<typename Iterator, typename Predicate>
@@ -88,10 +94,10 @@ struct Range<Iterator, Present, NotPresent, Predicate, typename std::enable_if<!
     Predicate p;
 
     friend
-    bool operator==(type const& x, type const& y) { return (x.begin == y.begin) && (x.end == y.end); }
+    constexpr bool operator==(type const& x, type const& y) { return (x.begin == y.begin) && (x.end == y.end); }
 
     friend
-    bool operator!=(type const& x, type const& y) { return !(x==y); }
+    constexpr bool operator!=(type const& x, type const& y) { return !(x==y); }
 };
 
 
@@ -105,10 +111,10 @@ struct Range<Iterator, Present, Present, Predicate, typename std::enable_if<Stor
     Predicate p;
 
     friend
-    bool operator==(type const& x, type const& y) { return (x.begin == y.begin) && (x.end == y.end) && (x.count == y.count) && (x.p == y.p); }
+    constexpr bool operator==(type const& x, type const& y) { return (x.begin == y.begin) && (x.end == y.end) && (x.count == y.count) && (x.p == y.p); }
 
     friend
-    bool operator!=(type const& x, type const& y) { return !(x==y); }
+    constexpr bool operator!=(type const& x, type const& y) { return !(x==y); }
 };
 
 template<typename Iterator, typename Predicate>
@@ -120,10 +126,10 @@ struct Range<Iterator, Present, Present, Predicate, typename std::enable_if<!Sto
     CountType<Iterator> count;
 
     friend
-    bool operator==(type const& x, type const& y) { return (x.begin == y.begin) && (x.end == y.end) && (x.count == y.count); }
+    constexpr bool operator==(type const& x, type const& y) { return (x.begin == y.begin) && (x.end == y.end) && (x.count == y.count); }
 
     friend
-    bool operator!=(type const& x, type const& y) { return !(x==y); }
+    constexpr bool operator!=(type const& x, type const& y) { return !(x==y); }
 };
 
 
@@ -135,10 +141,10 @@ struct Range<Iterator, NotPresent, Present, NotPresent>
     CountType<Iterator> count;
 
     friend
-    bool operator==(type const& x, type const& y) { return (x.begin == y.begin) && (x.count == y.count); }
+    constexpr bool operator==(type const& x, type const& y) { return (x.begin == y.begin) && (x.count == y.count); }
 
     friend
-    bool operator!=(type const& x, type const& y) { return !(x==y); }
+    constexpr bool operator!=(type const& x, type const& y) { return !(x==y); }
 };
 
 
@@ -151,10 +157,10 @@ struct Range<Iterator, NotPresent, Present, Predicate, typename std::enable_if<S
     Predicate p;
 
     friend
-    bool operator==(type const& x, type const& y) { return (x.begin == y.begin) && (x.count == y.count) && (x.p == y.p); }
+    constexpr bool operator==(type const& x, type const& y) { return (x.begin == y.begin) && (x.count == y.count) && (x.p == y.p); }
 
     friend
-    bool operator!=(type const& x, type const& y) { return !(x==y); }
+    constexpr bool operator!=(type const& x, type const& y) { return !(x==y); }
 };
 
 template<typename Iterator, typename Predicate>
@@ -165,10 +171,10 @@ struct Range<Iterator, NotPresent, Present, Predicate, typename std::enable_if<!
     CountType<Iterator> count;
 
     friend
-    bool operator==(type const& x, type const& y) { return (x.begin == y.begin) && (x.count == y.count); }
+    constexpr bool operator==(type const& x, type const& y) { return (x.begin == y.begin) && (x.count == y.count); }
 
     friend
-    bool operator!=(type const& x, type const& y) { return !(x==y); }
+    constexpr bool operator!=(type const& x, type const& y) { return !(x==y); }
 };
 
 template<typename Iterator, typename Predicate>
@@ -179,20 +185,20 @@ struct Range<Iterator, NotPresent, NotPresent, Predicate, typename std::enable_i
     Predicate p;
 
     friend
-    bool operator==(type const& x, type const& y) { return (x.begin == y.begin) && (x.count == y.count); }
+    constexpr bool operator==(type const& x, type const& y) { return (x.begin == y.begin) && (x.p == y.p); }
 
     friend
-    bool operator!=(type const& x, type const& y) { return !(x==y); }
+    constexpr bool operator!=(type const& x, type const& y) { return !(x==y); }
 };
 
 template<typename Iterator, typename End, typename Count, typename Predicate>
-Iterator&
+constexpr Iterator&
 getBegin(Range<Iterator, End, Count, Predicate>& x) {
     return x.begin;
 }
 
 template<typename Iterator, typename End, typename Count, typename Predicate>
-Iterator const&
+constexpr Iterator const&
 getBegin(Range<Iterator, End, Count, Predicate> const& x) {
     return x.begin;
 }
@@ -208,17 +214,16 @@ template<typename T>
 using HasEnd = HasEnd_Impl<T>;
 
 template<typename Iterator, typename End, typename Count, typename Predicate>
-typename std::enable_if<HasEnd<Range<Iterator, End, Count, Predicate>>::value, Iterator&>::type
+constexpr typename std::enable_if<HasEnd<Range<Iterator, End, Count, Predicate>>::value, Iterator&>::type
 getEnd(Range<Iterator, End, Count, Predicate>& x) {
     return x.end;
 }
 
 template<typename Iterator, typename End, typename Count, typename Predicate>
-typename std::enable_if<HasEnd<Range<Iterator, End, Count, Predicate>>::value, Iterator const&>::type
+constexpr typename std::enable_if<HasEnd<Range<Iterator, End, Count, Predicate>>::value, Iterator const&>::type
 getEnd(Range<Iterator, End, Count, Predicate> const& x) {
     return x.end;
 }
-
 
 
 template<typename T>
@@ -231,52 +236,159 @@ template<typename T>
 using HasCount = HasCount_Impl<T>;
 
 template<typename Iterator, typename End, typename Count, typename Predicate>
-typename std::enable_if<HasCount<Range<Iterator, End, Count, Predicate>>::value, CountType<Iterator>&>::type
+constexpr typename std::enable_if<HasCount<Range<Iterator, End, Count, Predicate>>::value, CountType<Iterator>&>::type
 getCount(Range<Iterator, End, Count, Predicate>& x) {
     return x.count;
 }
 
 template<typename Iterator, typename End, typename Count, typename Predicate>
-typename std::enable_if<HasCount<Range<Iterator, End, Count, Predicate>>::value, CountType<Iterator> const&>::type
+constexpr typename std::enable_if<HasCount<Range<Iterator, End, Count, Predicate>>::value, CountType<Iterator> const&>::type
 getCount(Range<Iterator, End, Count, Predicate> const& x) {
     return x.count;
 }
-
 
 
 template<typename T>
 struct HasPredicate_Impl : std::false_type {};
 
 template<typename Iterator, typename End, typename Count, typename Predicate>
-  struct HasPredicate_Impl<Range<Iterator, End, Count, Predicate>> : std::integral_constant<bool, !std::is_same<Predicate, NotPresent>::value> {};
+struct HasPredicate_Impl<Range<Iterator, End, Count, Predicate>> : std::integral_constant<bool, !std::is_same<Predicate, NotPresent>::value> {};
 
 template<typename T>
 using HasPredicate = HasPredicate_Impl<T>;
 
 template<typename Iterator, typename End, typename Count, typename Predicate>
-typename std::enable_if<HasPredicate<Range<Iterator, End, Count, Predicate>>::value && !StorePredicate<Predicate>::value, Predicate>::type
-getPred(Range<Iterator, End, Count, Predicate> const&) {
+constexpr typename std::enable_if<HasPredicate<Range<Iterator, End, Count, Predicate>>::value && !StorePredicate<Predicate>::value, Predicate>::type
+getPredicate(Range<Iterator, End, Count, Predicate> const&) {
     return {};
 }
 
 template<typename Iterator, typename End, typename Count, typename Predicate>
-typename std::enable_if<HasPredicate<Range<Iterator, End, Count, Predicate>>::value && StorePredicate<Predicate>::value, Predicate const&>::type
-getPred(Range<Iterator, End, Count, Predicate> const& x) {
+constexpr typename std::enable_if<HasPredicate<Range<Iterator, End, Count, Predicate>>::value && StorePredicate<Predicate>::value, Predicate const&>::type
+getPredicate(Range<Iterator, End, Count, Predicate> const& x) {
     return x.p;
 }
 
 template<typename Iterator, typename End, typename Count, typename Predicate>
-typename std::enable_if<HasPredicate<Range<Iterator, End, Count, Predicate>>::value && StorePredicate<Predicate>::value, Predicate&>::type
-getPred(Range<Iterator, End, Count, Predicate>& x) {
+constexpr typename std::enable_if<HasPredicate<Range<Iterator, End, Count, Predicate>>::value && StorePredicate<Predicate>::value, Predicate&>::type
+getPredicate(Range<Iterator, End, Count, Predicate>& x) {
     return x.p;
 }
 
 
-// Add End
-// Add Count
-// Add Predicate (stateless)
-// Add Predicate (stateful)
+template<typename Iterator, typename Iterator2, typename Predicate>
+constexpr typename std::enable_if<std::is_same<Predicate, NotPresent>::value || !StorePredicate<Predicate>::value, Range<Iterator, Present, NotPresent, Predicate>>::type
+addEnd(Range<Iterator, NotPresent, NotPresent, Predicate> x, Iterator2 end)
+{
+  return {x.begin, end};
+}
 
+template<typename Iterator, typename Iterator2, typename Predicate>
+constexpr typename std::enable_if<!std::is_same<Predicate, NotPresent>::value && StorePredicate<Predicate>::value, Range<Iterator, Present, NotPresent, Predicate>>::type
+addEnd(Range<Iterator, NotPresent, NotPresent, Predicate> x, Iterator2 end)
+{
+  return {x.begin, end, x.p};
+}
+
+template<typename Iterator, typename Iterator2, typename Predicate>
+constexpr typename std::enable_if<std::is_same<Predicate, NotPresent>::value || !StorePredicate<Predicate>::value, Range<Iterator, Present, Present, Predicate>>::type
+addEnd(Range<Iterator, NotPresent, Present, Predicate> x, Iterator2 end)
+{
+  return {x.begin, end, x.count};
+}
+
+template<typename Iterator, typename Iterator2, typename Predicate>
+constexpr typename std::enable_if<!std::is_same<Predicate, NotPresent>::value && StorePredicate<Predicate>::value, Range<Iterator, Present, Present, Predicate>>::type
+addEnd(Range<Iterator, NotPresent, Present, Predicate> x, Iterator2 end)
+{
+  return {x.begin, end, x.count, x.p};
+}
+
+
+template<typename Iterator, typename Predicate>
+constexpr typename std::enable_if<std::is_same<Predicate, NotPresent>::value || !StorePredicate<Predicate>::value, Range<Iterator, NotPresent, Present, Predicate>>::type
+addCount(Range<Iterator, NotPresent, NotPresent, Predicate> x, CountType<Iterator> count)
+{
+  return {x.begin, count};
+}
+
+template<typename Iterator, typename Predicate>
+constexpr typename std::enable_if<!std::is_same<Predicate, NotPresent>::value && StorePredicate<Predicate>::value, Range<Iterator, NotPresent, Present, Predicate>>::type
+addCount(Range<Iterator, NotPresent, NotPresent, Predicate> x, CountType<Iterator> count)
+{
+  return {x.begin, count, x.p};
+}
+
+template<typename Iterator, typename Predicate>
+constexpr typename std::enable_if<std::is_same<Predicate, NotPresent>::value || !StorePredicate<Predicate>::value, Range<Iterator, Present, Present, Predicate>>::type
+addCount(Range<Iterator, Present, NotPresent, Predicate> x, CountType<Iterator> count)
+{
+  return {x.begin, x.end, count};
+}
+
+template<typename Iterator, typename Predicate>
+constexpr typename std::enable_if<!std::is_same<Predicate, NotPresent>::value && StorePredicate<Predicate>::value, Range<Iterator, Present, Present, Predicate>>::type
+addCount(Range<Iterator, Present, NotPresent, Predicate> x, CountType<Iterator> count)
+{
+  return {x.begin, x.end, count, x.p};
+}
+
+
+template<typename Iterator, typename Predicate>
+constexpr typename std::enable_if<StorePredicate<Predicate>::value, Range<Iterator, NotPresent, NotPresent, Predicate>>::type
+addPredicate(Range<Iterator, NotPresent, NotPresent, NotPresent> x, Predicate p)
+{
+  return {x.begin, p};
+}
+
+template<typename Iterator, typename Predicate>
+constexpr typename std::enable_if<!StorePredicate<Predicate>::value, Range<Iterator, NotPresent, NotPresent, Predicate>>::type
+addPredicate(Range<Iterator, NotPresent, NotPresent, NotPresent> x, Predicate p)
+{
+  return {x.begin};
+}
+
+template<typename Iterator, typename Predicate>
+constexpr typename std::enable_if<StorePredicate<Predicate>::value, Range<Iterator, NotPresent, Present, Predicate>>::type
+addPredicate(Range<Iterator, NotPresent, Present, NotPresent> x, Predicate p)
+{
+  return {x.begin, x.count, p};
+}
+
+template<typename Iterator, typename Predicate>
+constexpr typename std::enable_if<!StorePredicate<Predicate>::value, Range<Iterator, NotPresent, Present, Predicate>>::type
+addPredicate(Range<Iterator, NotPresent, Present, NotPresent> x, Predicate p)
+{
+  return {x.begin, x.count};
+}
+
+template<typename Iterator, typename Predicate>
+constexpr typename std::enable_if<StorePredicate<Predicate>::value, Range<Iterator, Present, NotPresent, Predicate>>::type
+addPredicate(Range<Iterator, Present, NotPresent, NotPresent> x, Predicate p)
+{
+  return {x.begin, x.end, p};
+}
+
+template<typename Iterator, typename Predicate>
+constexpr typename std::enable_if<!StorePredicate<Predicate>::value, Range<Iterator, Present, NotPresent, Predicate>>::type
+addPredicate(Range<Iterator, Present, NotPresent, NotPresent> x, Predicate p)
+{
+  return {x.begin, x.end};
+}
+
+template<typename Iterator, typename Predicate>
+constexpr typename std::enable_if<StorePredicate<Predicate>::value, Range<Iterator, Present, Present, Predicate>>::type
+addPredicate(Range<Iterator, Present, Present, NotPresent> x, Predicate p)
+{
+  return {x.begin, x.end, x.count, p};
+}
+
+template<typename Iterator, typename Predicate>
+constexpr typename std::enable_if<!StorePredicate<Predicate>::value, Range<Iterator, Present, Present, Predicate>>::type
+addPredicate(Range<Iterator, Present, Present, NotPresent> x, Predicate p)
+{
+  return {x.begin, x.end, x.count};
+}
 
 } // namespace range2
 

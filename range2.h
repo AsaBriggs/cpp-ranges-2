@@ -24,8 +24,25 @@ typename std::remove_reference<T>::type&& cmove( T&& t ) {
   return static_cast<typename std::remove_reference<T>::type&&>(t);
 }
 
-struct TYPE_DEFAULT_VISIBILITY NotPresent { typedef NotPresent type; };
-struct TYPE_DEFAULT_VISIBILITY Present { typedef Present type; };
+struct TYPE_DEFAULT_VISIBILITY NotPresent {
+    typedef NotPresent type;
+
+    friend constexpr ALWAYS_INLINE_HIDDEN
+    bool operator== (type, type) { return true; }
+
+    friend constexpr ALWAYS_INLINE_HIDDEN
+    bool operator!= (type, type) { return false; }
+};
+
+struct TYPE_DEFAULT_VISIBILITY Present {
+    typedef Present type;
+
+    friend constexpr ALWAYS_INLINE_HIDDEN
+    bool operator== (type, type) { return true; }
+
+    friend constexpr ALWAYS_INLINE_HIDDEN
+    bool operator!= (type, type) { return false; }
+};
 
 
 // Optimise .. don't store the predicate unless it is stateful.
@@ -59,9 +76,42 @@ template<typename Iterator>
 using CountType = typename std::iterator_traits<Iterator>::difference_type;
 
 template<typename Iterator>
+using IteratorCategory = typename std::iterator_traits<Iterator>::iterator_category;
+
+template<typename T, typename Enable=void>
+struct TYPE_HIDDEN_VISIBILITY RangeEffectiveIteratorCategory_Impl {};
+
+template<typename Iterator, typename End, typename Count>
+struct TYPE_HIDDEN_VISIBILITY RangeEffectiveIteratorCategory_Impl<Range<Iterator, End, Count, NotPresent>> {
+  typedef IteratorCategory<Iterator> type;
+};
+
+// Having a predicate present means that iterator_category > forward are reduced to being forward.
+template<typename Iterator, typename End, typename Count, typename Predicate>
+  struct TYPE_HIDDEN_VISIBILITY RangeEffectiveIteratorCategory_Impl<Range<Iterator, End, Count, Predicate>, typename std::enable_if<std::is_convertible<IteratorCategory<Iterator>, std::forward_iterator_tag>::value && !std::is_same<Predicate, NotPresent>::value, void>::type> {
+  typedef std::forward_iterator_tag type;
+};
+
+template<typename Iterator, typename End, typename Count, typename Predicate>
+struct TYPE_HIDDEN_VISIBILITY RangeEffectiveIteratorCategory_Impl<Range<Iterator, End, Count, Predicate>, typename std::enable_if<!std::is_convertible<IteratorCategory<Iterator>, std::forward_iterator_tag>::value && !std::is_same<Predicate, NotPresent>::value, void>::type> {
+  typedef std::input_iterator_tag type;
+};
+
+template<typename T>
+using RangeEffectiveIteratorCategory = typename RangeEffectiveIteratorCategory_Impl<T>::type;
+
+
+
+
+template<typename Iterator>
 constexpr ALWAYS_INLINE_HIDDEN Iterator advance(Iterator x) {
   return ++x;
 }
+
+constexpr ALWAYS_INLINE_HIDDEN NotPresent decrementCount(NotPresent) { return {}; }
+
+template<typename Count>
+constexpr ALWAYS_INLINE_HIDDEN Count decrementCount(Count x) { return x - 1; }
 
 template<typename Iterator, typename End, typename Count, typename Predicate, typename Enable>
 struct TYPE_DEFAULT_VISIBILITY Range
@@ -497,15 +547,26 @@ removePredicate(Range<Iterator, End, Count, Predicate> const& x) {
 }
 
 
+template<typename Iterator, typename End, typename Count, typename Predicate>
+constexpr ALWAYS_INLINE_HIDDEN bool
+isEmpty(Range<Iterator, End, Count, Predicate> const& x) {
+  // ADL
+  return empty_impl(x);
+}
+
+template<typename Iterator, typename End, typename Count, typename Predicate>
+constexpr ALWAYS_INLINE_HIDDEN Range<Iterator, End, Count, Predicate>
+next(Range<Iterator, End, Count, Predicate> const& x) {
+  return Range<Iterator, End, Count, Predicate>::make(advance(getBegin(x)), getEnd(x), decrementCount(getCount(x)), getPredicate(x));
+}
 
 
 
 template<typename Iterator>
-struct TYPE_HIDDEN_VISIBILITY ConstantTimeAdvance : std::is_convertible<typename std::iterator_traits<Iterator>::iterator_category, std::random_access_iterator_tag> {};
+struct TYPE_HIDDEN_VISIBILITY ConstantTimeAdvance : std::is_convertible<IteratorCategory<Iterator>, std::random_access_iterator_tag> {};
 
 template<typename Iterator>
-struct TYPE_HIDDEN_VISIBILITY ConstantTimeDifference : std::is_convertible<typename std::iterator_traits<Iterator>::iterator_category, std::random_access_iterator_tag> {};
-
+struct TYPE_HIDDEN_VISIBILITY ConstantTimeDifference : std::is_convertible<IteratorCategory<Iterator>, std::random_access_iterator_tag> {};
 
 template<typename T>
 struct TYPE_HIDDEN_VISIBILITY ConstantTimeEnd : std::false_type {};
@@ -515,6 +576,20 @@ struct TYPE_HIDDEN_VISIBILITY ConstantTimeEnd<Range<Iterator, Present, Count, No
 
 template<typename Iterator>
 struct TYPE_HIDDEN_VISIBILITY ConstantTimeEnd<Range<Iterator, NotPresent, Present, NotPresent>> : ConstantTimeAdvance<Iterator> {};
+
+template<typename T>
+struct CanAddEndInLinearTime {};
+
+// Can add a count in linear time if we can't add it in constant time, the iteration is repeatable
+// and either a count or a predicate is present to terminate the loop.
+template<typename Iterator, typename Count, typename Predicate>
+struct CanAddEndInLinearTime<Range<Iterator, NotPresent, Count, Predicate>> :
+  std::integral_constant<bool,
+   !ConstantTimeEnd<Range<Iterator, NotPresent, Count, Predicate>>::value &&
+   std::is_convertible<IteratorCategory<Iterator>, std::forward_iterator_tag>::value &&
+  ( !std::is_same<Count, NotPresent>::value || !std::is_same<Predicate, NotPresent>::value) >
+{};
+
 
 // Already present
 template<typename Iterator, typename Count, typename Predicate>
@@ -540,6 +615,37 @@ addConstantTimeEnd(Range<Iterator, NotPresent, Count, Predicate> const& x) {
 }
 
 
+template<typename Iterator, typename Count, typename Predicate>
+constexpr ALWAYS_INLINE_HIDDEN Range<Iterator, Present, Count, Predicate>
+addLinearTimeEnd(Range<Iterator, Present, Count, Predicate> const& x) {
+  return x;
+}
+
+template<typename Iterator, typename Count, typename Predicate>
+typename std::enable_if<ConstantTimeEnd<Range<Iterator, NotPresent, Count, Predicate>>::value, Range<Iterator, Present, Count, Predicate>>::type
+addLinearTimeEnd(Range<Iterator, NotPresent, Count, Predicate> const& x) {
+  return addConstantTimeEnd(x);
+}
+
+template<typename Iterator, typename Count, typename Predicate>
+typename std::enable_if<CanAddEndInLinearTime<Range<Iterator, NotPresent, Count, Predicate>>::value, Range<Iterator, Present, Present, NotPresent>>::type
+addLinearTimeEnd(Range<Iterator, NotPresent, Count, Predicate> const& x) {
+  auto tmp = x;
+  CountType<Iterator> count = 0;
+  while(!isEmpty(tmp)) {
+    tmp = next(tmp);
+    ++count;
+  }
+  return addCount(addEnd(removePredicate(x), getBegin(tmp)), count);
+}
+
+
+
+
+
+
+
+
 template<typename T>
 struct TYPE_HIDDEN_VISIBILITY ConstantTimeCount : std::false_type {};
 
@@ -548,6 +654,20 @@ struct TYPE_HIDDEN_VISIBILITY ConstantTimeCount<Range<Iterator, End, Present, No
 
 template<typename Iterator>
 struct TYPE_HIDDEN_VISIBILITY ConstantTimeCount<Range<Iterator, Present, NotPresent, NotPresent>> : ConstantTimeDifference<Iterator> {};
+
+template<typename T>
+struct CanAddCountInLinearTime {};
+
+// Can add a count in linear time if we can't add it in constant time, the iteration is repeatable
+// and either a count or a predicate is present to terminate the loop.
+template<typename Iterator, typename End, typename Predicate>
+struct CanAddCountInLinearTime<Range<Iterator, End, NotPresent, Predicate>> :
+  std::integral_constant<bool,
+  !ConstantTimeCount<Range<Iterator, End, NotPresent, Predicate>>::value &&
+  std::is_convertible<IteratorCategory<Iterator>, std::forward_iterator_tag>::value &&
+  (!std::is_same<End, NotPresent>::value || !std::is_same<Predicate, NotPresent>::value) >
+{};
+
 
 // Already present
 template<typename Iterator, typename End, typename Predicate>
@@ -570,23 +690,38 @@ addConstantTimeCount(Range<Iterator, End, NotPresent, Predicate> const& x) {
   return x;
 }
 
-template<typename Iterator, typename End, typename Count, typename Predicate>
-constexpr ALWAYS_INLINE_HIDDEN bool
-isEmpty(Range<Iterator, End, Count, Predicate> const& x) {
-  return empty_impl(x);
+template<typename Iterator, typename End, typename Predicate>
+constexpr ALWAYS_INLINE_HIDDEN Range<Iterator, End, Present, Predicate>
+addLinearTimeCount(Range<Iterator, End, Present, Predicate> const& x) {
+  return x;
 }
 
-constexpr ALWAYS_INLINE_HIDDEN NotPresent decrementCount(NotPresent) { return {}; }
-
-template<typename Count>
-constexpr ALWAYS_INLINE_HIDDEN Count decrementCount(Count x) { return x - 1; }
-
-template<typename Iterator, typename End, typename Count, typename Predicate>
-constexpr ALWAYS_INLINE_HIDDEN Range<Iterator, End, Count, Predicate>
-next(Range<Iterator, End, Count, Predicate> const& x) {
-  return Range<Iterator, End, Count, Predicate>::make(advance(getBegin(x)), getEnd(x), decrementCount(getCount(x)), getPredicate(x));
+template<typename Iterator, typename End, typename Predicate>
+constexpr ALWAYS_INLINE_HIDDEN typename std::enable_if<ConstantTimeCount<Range<Iterator, End, NotPresent, Predicate>>::value, Range<Iterator, End, Present, Predicate>>::type
+addLinearTimeCount(Range<Iterator, End, NotPresent, Predicate> const& x) {
+  return addConstantTimeCount(x);
 }
 
+template<typename Iterator, typename End, typename Predicate>
+ALWAYS_INLINE_HIDDEN typename std::enable_if<CanAddCountInLinearTime<Range<Iterator, End, NotPresent, Predicate>>::value, Range<Iterator, Present, Present, Predicate>>::type
+addLinearTimeCount(Range<Iterator, End, NotPresent, Predicate> const& x) {
+  auto tmp = x;
+  CountType<Iterator> count = 0;
+  while(!isEmpty(tmp)) {
+    tmp = next(tmp);
+    ++count;
+  }
+  return addCount(addEnd(x, getBegin(tmp)), count);
+}
+
+template<typename T>
+ALWAYS_INLINE_HIDDEN auto addLinearTimeEndAndCount(T const& x) -> decltype(addLinearTimeCount(addLinearTimeEnd(x))) {
+  return addLinearTimeCount(addLinearTimeEnd(x));
+}
+
+// Split
+// Reverse
+// Skip ... toughie for non-divisible ranges
 
 } // namespace range2
 

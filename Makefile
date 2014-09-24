@@ -1,5 +1,5 @@
 CC=g++
-CFLAGS=-c -Wall -pedantic --std=c++11
+CFLAGS=-c -Wall -pedantic --std=c++11 -Os
 LDFLAGS=
 INCLUDES=range2.h
 SOURCES=range2.cpp

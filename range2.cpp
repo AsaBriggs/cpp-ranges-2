@@ -2,222 +2,131 @@
 
 #include <cassert>
 #include <iostream>
+#include <vector>
+#include <numeric>
 #include <forward_list>
+#include <chrono>
 
 namespace range2 {
 namespace {
+
+class timer {
+private:
+    std::chrono::time_point<std::chrono::high_resolution_clock> start_time;
+public:
+    void start() {
+        start_time = std::chrono::high_resolution_clock::now();
+    }
+
+    double stop() {
+        auto stop_time = std::chrono::high_resolution_clock::now();
+        return double(std::chrono::duration_cast<std::chrono::nanoseconds>(stop_time - start_time).count());
+    }
+};
 
 #define TEST_ASSERT(x) static_assert(x, "Unexpected")
 
   typedef int const* PtrType;
 
-  struct StatelessFalsePredicate
-  {
-    constexpr bool operator()(PtrType) const { return false; }
-
-    friend
-    constexpr bool operator==(StatelessFalsePredicate const& x, StatelessFalsePredicate const& y) { return true; }
-  };
-
-  struct StatelessTruePredicate
-  {
-    constexpr bool operator()(PtrType) const { return true; }
-
-    friend
-    constexpr bool operator==(StatelessTruePredicate const& x, StatelessTruePredicate const& y) { return true; }
-  };
-
-  struct StatefulPredicate
-  {
-    bool state;
-    constexpr bool operator()(PtrType) const { return state; }
-
-    friend
-    constexpr bool operator==(StatefulPredicate const& x, StatefulPredicate const& y) { return x.state == y.state; }
-  };
-
   constexpr int arr[20] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19};
   constexpr PtrType begin = &arr[0];
   constexpr PtrType end = &arr[20];
   constexpr int count = 20;
-  constexpr StatefulPredicate statefulState = {false};
   const std::forward_list<int> slist(begin, end);
 
   // Test Range construction
-  constexpr Range<PtrType, NotPresent, NotPresent, NotPresent> r000 = {begin};
+  constexpr Range<PtrType, NotPresent, NotPresent> r00 = {begin};
+  constexpr Range<PtrType, NotPresent, Present> r01 = {begin, count};
+  constexpr Range<PtrType, Present, NotPresent> r10 = {begin, end};
+  constexpr Range<PtrType, Present, Present> r11 = {begin, end, count};
 
-  constexpr Range<PtrType, NotPresent, NotPresent, StatelessFalsePredicate> r001 = {begin};
-  constexpr Range<PtrType, NotPresent, NotPresent, StatefulPredicate> r002 = {begin, statefulState};
-
-  constexpr Range<PtrType, NotPresent, Present, NotPresent> r010 = {begin, count};
-  constexpr Range<PtrType, NotPresent, Present, StatelessFalsePredicate> r011 = {begin, count};
-  constexpr Range<PtrType, NotPresent, Present, StatefulPredicate> r012 = {begin, count, statefulState};
-
-  constexpr Range<PtrType, Present, NotPresent, NotPresent> r100 = {begin, end};
-
-  constexpr Range<PtrType, Present, NotPresent, StatelessFalsePredicate> r101 = {begin, end};
-  constexpr Range<PtrType, Present, NotPresent, StatefulPredicate> r102 = {begin, end, statefulState};
-
-  constexpr Range<PtrType, Present, Present, NotPresent> r110 = {begin, end, count};
-  constexpr Range<PtrType, Present, Present, StatelessFalsePredicate> r111 = {begin, end, count};
-  constexpr Range<PtrType, Present, Present, StatefulPredicate> r112 = {begin, end, count, statefulState};
-
-  TEST_ASSERT((std::is_same<RangeEffectiveIteratorCategory<Range<PtrType, Present, Present, NotPresent>>, std::random_access_iterator_tag>::value));
-  TEST_ASSERT((std::is_same<RangeEffectiveIteratorCategory<Range<PtrType, Present, Present, StatefulPredicate>>, std::forward_iterator_tag>::value));
-  TEST_ASSERT((std::is_same<RangeEffectiveIteratorCategory<Range<std::istream_iterator<char>, Present, Present, NotPresent>>, std::input_iterator_tag>::value));
-  TEST_ASSERT((std::is_same<RangeEffectiveIteratorCategory<Range<std::istream_iterator<char>, Present, Present, StatefulPredicate>>, std::input_iterator_tag>::value));
-  TEST_ASSERT((std::is_same<RangeEffectiveIteratorCategory<Range<std::forward_list<char>::iterator, Present, Present, NotPresent>>, std::forward_iterator_tag>::value));
-  TEST_ASSERT((std::is_same<RangeEffectiveIteratorCategory<Range<std::forward_list<char>::iterator, Present, Present, StatefulPredicate>>, std::forward_iterator_tag>::value));
+  TEST_ASSERT((std::is_same<RangeEffectiveIteratorCategory<Range<PtrType, Present, Present>>, std::random_access_iterator_tag>::value));
+  TEST_ASSERT((std::is_same<RangeEffectiveIteratorCategory<Range<std::istream_iterator<char>, Present, Present>>, std::input_iterator_tag>::value));
+  TEST_ASSERT((std::is_same<RangeEffectiveIteratorCategory<Range<std::forward_list<char>::iterator, Present, Present>>, std::forward_iterator_tag>::value));
 
   void testEquality() {
-    TEST_ASSERT(r000 == r000);
-    TEST_ASSERT(r001 == r001);
-    TEST_ASSERT(r002 == r002);
-
-    TEST_ASSERT(r010 == r010);
-    TEST_ASSERT(r011 == r011);
-    TEST_ASSERT(r012 == r012);
-
-    TEST_ASSERT(r100 == r100);
-    TEST_ASSERT(r101 == r101);
-    TEST_ASSERT(r102 == r102);
-
-    TEST_ASSERT(r110 == r110);
-    TEST_ASSERT(r111 == r111);
-    TEST_ASSERT(r112 == r112);
+    TEST_ASSERT(r00 == r00);
+    TEST_ASSERT(r01 == r01);
+    TEST_ASSERT(r10 == r10);
+    TEST_ASSERT(r11 == r11);
   }
 
   void testInequality() {
-    TEST_ASSERT(!(r000 != r000));
-    TEST_ASSERT(!(r001 != r001));
-    TEST_ASSERT(!(r002 != r002));
-
-    TEST_ASSERT(!(r010 != r010));
-    TEST_ASSERT(!(r011 != r011));
-    TEST_ASSERT(!(r012 != r012));
-
-    TEST_ASSERT(!(r100 != r100));
-    TEST_ASSERT(!(r101 != r101));
-    TEST_ASSERT(!(r102 != r102));
-
-    TEST_ASSERT(!(r110 != r110));
-    TEST_ASSERT(!(r111 != r111));
-    TEST_ASSERT(!(r112 != r112));
+    TEST_ASSERT(!(r00 != r00));
+    TEST_ASSERT(!(r01 != r01));
+    TEST_ASSERT(!(r10 != r10));
+    TEST_ASSERT(!(r11 != r11));
   }
 
   void testGetBegin() {
-    TEST_ASSERT(begin == getBegin(r000));
-    TEST_ASSERT(begin == getBegin(r001));
-    TEST_ASSERT(begin == getBegin(r002));
-    TEST_ASSERT(begin == getBegin(r010));
-    TEST_ASSERT(begin == getBegin(r011));
-    TEST_ASSERT(begin == getBegin(r012));
-    TEST_ASSERT(begin == getBegin(r100));
-    TEST_ASSERT(begin == getBegin(r101));
-    TEST_ASSERT(begin == getBegin(r102));
-    TEST_ASSERT(begin == getBegin(r110));
-    TEST_ASSERT(begin == getBegin(r111));
-    TEST_ASSERT(begin == getBegin(r112));
+    TEST_ASSERT(begin == getBegin(r00));
+    TEST_ASSERT(begin == getBegin(r01));
+    TEST_ASSERT(begin == getBegin(r10));
+    TEST_ASSERT(begin == getBegin(r11));
 
     // Test non-const reference path
-    Range<PtrType, NotPresent, NotPresent, NotPresent> tmp = {begin};
+    Range<PtrType, NotPresent, NotPresent> tmp = {begin};
     PtrType& begin2 = getBegin(tmp);
     assert(begin2 == begin);
   }
 
   void testGetEnd() {
-    TEST_ASSERT(end == getEnd(r100));
-    TEST_ASSERT(end == getEnd(r101));
-    TEST_ASSERT(end == getEnd(r102));
-    TEST_ASSERT(end == getEnd(r110));
-    TEST_ASSERT(end == getEnd(r111));
-    TEST_ASSERT(end == getEnd(r112));
+    TEST_ASSERT(end == getEnd(r10));
+    TEST_ASSERT(end == getEnd(r11));
 
     // Test non-const reference path
-    Range<PtrType, Present, NotPresent, NotPresent> tmp = {begin, end};
+    Range<PtrType, Present, NotPresent> tmp = {begin, end};
     PtrType& end2 = getEnd(tmp);
     assert(end2 == end);
 
-    NotPresent tmp2 = getEnd(r000);
+    NotPresent tmp2 = getEnd(r00);
     (void)tmp2;
+
+    NotPresent tmp3 = getEnd(r01);
+    (void)tmp3;
   }
 
   void testGetCount() {
-    TEST_ASSERT(count == getCount(r010));
-    TEST_ASSERT(count == getCount(r011));
-    TEST_ASSERT(count == getCount(r012));
-    TEST_ASSERT(count == getCount(r110));
-    TEST_ASSERT(count == getCount(r111));
-    TEST_ASSERT(count == getCount(r112));
+    TEST_ASSERT(count == getCount(r01));
+    TEST_ASSERT(count == getCount(r11));
 
     // Test non-const reference path
-    Range<PtrType, Present, Present, NotPresent> tmp = {begin, end, count};
+    Range<PtrType, Present, Present> tmp = {begin, end, count};
     CountType<PtrType>& count2 = getCount(tmp);
     assert(count2 == count);
 
-    NotPresent tmp2 = getCount(r000);
+    NotPresent tmp2 = getCount(r00);
     (void)tmp2;
-  }
 
-  void testGetPredicate() {
-    getPredicate(r001);
-    TEST_ASSERT(!getPredicate(r002).state);
-    getPredicate(r011);
-    TEST_ASSERT(!getPredicate(r012).state);
-    getPredicate(r101);
-    TEST_ASSERT(!getPredicate(r102).state);
-    getPredicate(r111);
-    TEST_ASSERT(!getPredicate(r112).state);
-
-    NotPresent tmp2 = getPredicate(r000);
-    (void)tmp2;
+    NotPresent tmp3 = getCount(r10);
+    (void)tmp3;
   }
 
   void testAddEnd() {
-    TEST_ASSERT(end == getEnd(addEnd(r000, end)));
-    TEST_ASSERT(end == getEnd(addEnd(r001, end)));
-    TEST_ASSERT(end == getEnd(addEnd(r002, end)));
-
-    TEST_ASSERT(end == getEnd(addEnd(r010, end)));
-    TEST_ASSERT(end == getEnd(addEnd(r011, end)));
-    TEST_ASSERT(end == getEnd(addEnd(r012, end)));
+    TEST_ASSERT(end == getEnd(addEnd(r00, end)));
+    TEST_ASSERT(end == getEnd(addEnd(r01, end)));
+    TEST_ASSERT(end == getEnd(addEnd(r10, end)));
+    TEST_ASSERT(end == getEnd(addEnd(r11, end)));
   }
 
   void testAddCount() {
     constexpr int x = 123;
 
-    TEST_ASSERT(x == getCount(addCount(r000, x)));
-    TEST_ASSERT(x == getCount(addCount(r001, x)));
-    TEST_ASSERT(x == getCount(addCount(r002, x)));
-
-    TEST_ASSERT(x == getCount(addCount(r100, x)));
-    TEST_ASSERT(x == getCount(addCount(r101, x)));
-    TEST_ASSERT(x == getCount(addCount(r102, x)));
-  }
-
-  void testAddPredicate() {
-    getPredicate(addPredicate(r000, StatelessFalsePredicate{}));
-    TEST_ASSERT(!getPredicate(addPredicate(r000, statefulState)).state);
-
-    getPredicate(addPredicate(r010, StatelessFalsePredicate{}));
-    TEST_ASSERT(!getPredicate(addPredicate(r010, statefulState)).state);
-
-    getPredicate(addPredicate(r100, StatelessFalsePredicate{}));
-    TEST_ASSERT(!getPredicate(addPredicate(r100, statefulState)).state);
-
-    getPredicate(addPredicate(r110, StatelessFalsePredicate{}));
-    TEST_ASSERT(!getPredicate(addPredicate(r110, statefulState)).state);
+    TEST_ASSERT(x == getCount(addCount(r00, x)));
+    TEST_ASSERT(x == getCount(addCount(r01, x)));
+    TEST_ASSERT(x == getCount(addCount(r10, x)));
+    TEST_ASSERT(x == getCount(addCount(r11, x)));
   }
 
   void testRemoveEnd() {
     {
-      auto tmp = removeEnd(r100);
+      auto tmp = removeEnd(r10);
       NotPresent tmp2 = getEnd(tmp);
       (void)tmp2;
     }
 
     {
-      auto tmp = removeEnd(r012);
+      auto tmp = removeEnd(r11);
       NotPresent tmp2 = getEnd(tmp);
       (void)tmp2;
     }
@@ -225,34 +134,14 @@ namespace {
 
   void testRemoveCount() {
     {
-      auto tmp = removeCount(r010);
+      auto tmp = removeCount(r01);
       NotPresent tmp2 = getCount(tmp);
       (void)tmp2;
     }
 
     {
-      auto tmp = removeCount(r102);
+      auto tmp = removeCount(r11);
       NotPresent tmp2 = getCount(tmp);
-      (void)tmp2;
-    }
-  }
-
-  void testRemovePredicate() {
-    {
-      auto tmp = removePredicate(r011);
-      NotPresent tmp2 = getPredicate(tmp);
-      (void)tmp2;
-    }
-
-    {
-      auto tmp = removePredicate(r012);
-      NotPresent tmp2 = getPredicate(tmp);
-      (void)tmp2;
-    }
-
-    {
-      auto tmp = removePredicate(r110);
-      NotPresent tmp2 = getPredicate(tmp);
       (void)tmp2;
     }
   }
@@ -263,7 +152,6 @@ namespace {
       assert(getBegin(x) == getBegin(tmp));
       assert(end == getEnd(tmp));
       assert(getCount(x) == getCount(tmp));
-      assert(getPredicate(x) == getPredicate(tmp));
   }
 
   template<typename T>
@@ -273,23 +161,15 @@ namespace {
       NotPresent tmp2 = getEnd(tmp);
       (void)tmp2;
       assert(getCount(x) == getCount(tmp));
-      assert(getPredicate(x) == getPredicate(tmp));
   }
 
   void testAddConstantTimeEnd() {
-    testAddConstantTimeEndImpl(r010);
-    testAddConstantTimeEndImpl(r100);
-    testAddConstantTimeEndImpl(r110);
-    testAddConstantTimeEndImpl(r111);
-    testAddConstantTimeEndImpl(r112);
+    testAddConstantTimeEndImpl(r01);
+    testAddConstantTimeEndImpl(r10);
+    testAddConstantTimeEndImpl(r11);
 
-    testAddConstantTimeEndNotPossibleImpl(r000);
-    testAddConstantTimeEndNotPossibleImpl(r001);
-    testAddConstantTimeEndNotPossibleImpl(r002);
-    testAddConstantTimeEndNotPossibleImpl(r011);
-    testAddConstantTimeEndNotPossibleImpl(r012);
-
-    testAddConstantTimeEndNotPossibleImpl(makeRange(slist.begin(), NotPresent{}, 20, NotPresent{}));
+    testAddConstantTimeEndNotPossibleImpl(r00);
+    testAddConstantTimeEndNotPossibleImpl(makeRange(slist.begin(), NotPresent{}, 20));
   }
 
   template<typename T>
@@ -298,7 +178,6 @@ namespace {
     assert(getBegin(x) == getBegin(tmp));
     assert(getEnd(x) == getEnd(tmp));
     assert(count == getCount(tmp));
-    assert(getPredicate(x) == getPredicate(tmp));
   }
 
   template<typename T>
@@ -308,20 +187,15 @@ namespace {
       assert(getEnd(x) == getEnd(tmp));
       NotPresent tmp2 = getCount(tmp);
       (void)tmp2;
-      assert(getPredicate(x) == getPredicate(tmp));
   }
 
   void testAddConstantTimeCount() {
-    testAddConstantTimeCountImpl(r100);
-    testAddConstantTimeCountImpl(r110);
-    testAddConstantTimeCountImpl(r010);
+    testAddConstantTimeCountImpl(r10);
+    testAddConstantTimeCountImpl(r01);
+    testAddConstantTimeCountImpl(r11);
 
-    testAddConstantTimeCountNotPossibleImpl(r000);
-    testAddConstantTimeCountNotPossibleImpl(r001);
-    testAddConstantTimeCountNotPossibleImpl(r002);
-
-    testAddConstantTimeCountNotPossibleImpl(r101);
-    testAddConstantTimeCountNotPossibleImpl(r102);
+    testAddConstantTimeCountNotPossibleImpl(r00);
+    testAddConstantTimeCountNotPossibleImpl(makeRange(slist.begin(), slist.end(), NotPresent{}));
   }
 
   template<typename T>
@@ -340,24 +214,12 @@ namespace {
   }
 
   void testAddLinearTimeEnd() {
-    testAddLinearTimeEndImpl(r010);
-    testAddLinearTimeEndImpl(r011);
-    testAddLinearTimeEndImpl(r012);
-
-    //Can't call r000 or r001 or r002 as these don't have a termination condition.
-
-    // End not actually calculated for these
-    testAddLinearTimeEndNoCountCheckImpl(r100);
-    testAddLinearTimeEndNoCountCheckImpl(r101);
-    testAddLinearTimeEndNoCountCheckImpl(r102);
-
-    // Count already present for these
-    testAddLinearTimeEndImpl(r110);
-    testAddLinearTimeEndImpl(r111);
-    testAddLinearTimeEndImpl(r112);
+    testAddLinearTimeEndImpl(r01);
+    testAddLinearTimeEndImpl(r11);
+    testAddLinearTimeEndImpl(r11);
 
     {
-      auto tmp = addLinearTimeEnd(makeRange(slist.begin(), NotPresent{}, 20, NotPresent{}));
+      auto tmp = addLinearTimeEnd(makeRange(slist.begin(), NotPresent{}, 20));
       assert(slist.end() == getEnd(tmp));
       assert(20 == getCount(tmp));
     }
@@ -377,123 +239,36 @@ namespace {
   }
 
   void testAddLinearTimeCount() {
-    // Can't call for r000 or r001, r002 as these don't have a termiantion condition.
-    testAddLinearTimeCountImpl(r100);
-    testAddLinearTimeCountImpl(r101);
-    testAddLinearTimeCountImpl(r102);
-
-    // end not actually calculated for these
-    testAddLinearTimeCountNoEndCheckImpl(r010);
-    testAddLinearTimeCountNoEndCheckImpl(r011);
-    testAddLinearTimeCountNoEndCheckImpl(r012);
-
-    // End not actually calculated
-    testAddLinearTimeCountImpl(r110);
-    testAddLinearTimeCountImpl(r111);
-    testAddLinearTimeCountImpl(r112);
+    // Can't call for r00 as this don't have a termiantion condition.
+    testAddLinearTimeCountImpl(r10);
+    testAddLinearTimeCountImpl(r11);
 
     {
-      auto tmp = addLinearTimeCount(makeRange(slist.begin(), slist.end(), NotPresent{}, NotPresent{}));
+      auto tmp = addLinearTimeCount(makeRange(slist.begin(), slist.end(), NotPresent{}));
       assert(20 == getCount(tmp));
       assert(slist.end() == getEnd(tmp));
     }
   }
 
   void testIsEmpty() {
-    assert(!isEmpty(r000));
-    assert(!isEmpty(r001));
-    assert(!isEmpty(r002));
-
-    assert(!isEmpty(r010));
-    assert(!isEmpty(r011));
-    assert(!isEmpty(r012));
-
-    assert(!isEmpty(r100));
-    assert(!isEmpty(r101));
-    assert(!isEmpty(r102));
-
-    assert(!isEmpty(r110));
-    assert(!isEmpty(r111));
-    assert(!isEmpty(r112));
+    assert(!isEmpty(r00));
+    assert(!isEmpty(r01));
+    assert(!isEmpty(r10));
+    assert(!isEmpty(r11));
     
     {
-      auto tmp = makeRange(begin, begin, NotPresent{}, NotPresent{});
+      auto tmp = makeRange(begin, begin, NotPresent{});
       assert(isEmpty(tmp));
     }
 
     {
-      auto tmp = makeRange(begin, NotPresent{}, 0, NotPresent{});
+      auto tmp = makeRange(begin, NotPresent{}, 0);
       assert(isEmpty(tmp));
     }
 
     {
       // Demonstrates that count is used in preference to begin/end pair
-      auto tmp = makeRange(begin, end, 0, NotPresent{});
-      assert(isEmpty(tmp));
-    }
-
-    {
-      auto tmp = makeRange(begin, NotPresent{}, NotPresent{}, StatefulPredicate{true});
-      assert(isEmpty(tmp));
-    }
-
-    {
-      auto tmp = makeRange(begin, NotPresent{}, NotPresent{}, StatelessTruePredicate{});
-      assert(isEmpty(tmp));
-    }
-
-    // Demonstrate that the begin/end pair or else count is used before reference to
-    // the predicate
-    {
-      auto tmp = makeRange(begin, end, NotPresent{}, StatelessFalsePredicate{});
-      assert(!isEmpty(tmp));
-      getEnd(tmp) = begin;
-      assert(isEmpty(tmp));
-    }
-
-    {
-      auto tmp = makeRange(begin, NotPresent{}, 10, StatelessFalsePredicate{});
-      assert(!isEmpty(tmp));
-      getCount(tmp) = 0;
-      assert(isEmpty(tmp));
-    }
-
-    {
-      auto tmp = makeRange(begin, end, NotPresent{}, StatefulPredicate{false});
-      assert(!isEmpty(tmp));
-      getEnd(tmp) = begin;
-      assert(isEmpty(tmp));
-    }
-
-    {
-      auto tmp = makeRange(begin, NotPresent{}, 10, StatefulPredicate{false});
-      assert(!isEmpty(tmp));
-      getCount(tmp) = 0;
-      assert(isEmpty(tmp));
-    }
-
-    // Demonstrate that predicate is eventually used
-    {
-      auto tmp = makeRange(begin, end, NotPresent{}, StatelessTruePredicate{});
-      assert(isEmpty(tmp));
-    }
-
-    {
-      auto tmp = makeRange(begin, NotPresent{}, 10, StatelessTruePredicate{});
-      assert(isEmpty(tmp));
-    }
-
-    {
-      auto tmp = makeRange(begin, end, NotPresent{}, StatefulPredicate{false});
-      assert(!isEmpty(tmp));
-      getPredicate(tmp).state = true;
-      assert(isEmpty(tmp));
-    }
-
-    {
-      auto tmp = makeRange(begin, NotPresent{}, 10, StatefulPredicate{false});
-      assert(!isEmpty(tmp));
-      getPredicate(tmp).state = true;
+      auto tmp = makeRange(begin, end, 0);
       assert(isEmpty(tmp));
     }
   }
@@ -509,31 +284,362 @@ namespace {
     assert(20 == i);
   }
 
-  struct EndOfArrayStateless {
-    constexpr bool operator()(PtrType x) const { return x == end; }
-  };
-
-  struct EndOfArrayStateful {
-    PtrType theEnd;
-    constexpr bool operator()(PtrType x) const { return x == theEnd; }
-  };
-
   void testNext() {
-    testBoundedRange(makeRange(begin, end, NotPresent{}, NotPresent{}));
-    testBoundedRange(makeRange(begin, NotPresent{}, 20, NotPresent{}));
-    testBoundedRange(makeRange(begin, end, 20, NotPresent{}));
+    testBoundedRange(makeRange(begin, end, NotPresent{}));
+    testBoundedRange(makeRange(begin, NotPresent{}, 20));
+    testBoundedRange(makeRange(begin, end, 20));
+  }
 
-    testBoundedRange(makeRange(begin, NotPresent{}, NotPresent{}, EndOfArrayStateless{}));
-    testBoundedRange(makeRange(begin, NotPresent{}, NotPresent{}, EndOfArrayStateful{end}));
+  template<typename R0, typename R1, typename R2>
+  void checkBoundedness(R0 const&, pair<R1, R2> const&) {
+    static_assert(IsABoundedRange<R1>::value, "Must be a bounded range");
+    static_assert(IsABoundedRange<R0>::value == IsABoundedRange<R2>::value, "Boundedness must be equal");
+  }
 
-    testBoundedRange(makeRange(begin, end, NotPresent{}, EndOfArrayStateless{}));
-    testBoundedRange(makeRange(begin, end, NotPresent{}, EndOfArrayStateful{end}));
+  void testSplitAt() {
+    // For r00, r01, r10 & r11 need to check the case of providing
+    // a middle, an end, and both a middle and an end. Note that providing just an end forces splitAt
+    // to calculate the middle too.
+    {
+      auto tmp = splitAt(r00, begin + 9, NotPresent{});
+      checkBoundedness(r00, tmp);
 
-    testBoundedRange(makeRange(begin, NotPresent{}, 20, EndOfArrayStateless{}));
-    testBoundedRange(makeRange(begin, NotPresent{}, 20, EndOfArrayStateful{end}));
+      assert(!isEmpty(tmp.m0));
+      assert(begin == getBegin(tmp.m0));
+      assert(begin + 9 == getEnd(tmp.m0));
+      NotPresent np0 = getCount(tmp.m0);
+      (void)np0;
 
-    testBoundedRange(makeRange(begin, end, 20, EndOfArrayStateless{}));
-    testBoundedRange(makeRange(begin, end, 20, EndOfArrayStateful{end}));
+      assert(!isEmpty(tmp.m1));
+      assert(begin + 9 == getBegin(tmp.m1));
+      NotPresent np1 = getEnd(tmp.m1);
+      (void)np1;
+      NotPresent np2 = getCount(tmp.m1);
+      (void)np2;
+    }
+
+    {
+      auto tmp = splitAt(r00, NotPresent{}, 9);
+      checkBoundedness(r00, tmp);
+
+      assert(!isEmpty(tmp.m0));
+      assert(begin == getBegin(tmp.m0));
+      assert(begin + 9 == getEnd(tmp.m0));
+      assert(9 == getCount(tmp.m0));
+
+      assert(!isEmpty(tmp.m1));
+      assert(begin + 9 == getBegin(tmp.m1));
+      NotPresent np0 = getEnd(tmp.m1);
+      (void)np0;
+      NotPresent np1 = getCount(tmp.m1);
+      (void)np1;
+    }
+
+    {
+      auto tmp = splitAt(r00, begin + 9, 9);
+      checkBoundedness(r00, tmp);
+
+      assert(!isEmpty(tmp.m0));
+      assert(begin == getBegin(tmp.m0));
+      assert(begin + 9 == getEnd(tmp.m0));
+      assert(9 == getCount(tmp.m0));
+
+      assert(!isEmpty(tmp.m1));
+      assert(begin + 9 == getBegin(tmp.m1));
+      NotPresent np0 = getEnd(tmp.m1);
+      (void)np0;
+      NotPresent np1 = getCount(tmp.m1);
+      (void)np1;
+    }
+
+    {
+      auto tmp = splitAt(r01, begin + 9, NotPresent{});
+      checkBoundedness(r01, tmp);
+
+      assert(!isEmpty(tmp.m0));
+      assert(begin == getBegin(tmp.m0));
+      assert(begin + 9 == getEnd(tmp.m0));
+      // count has to be calculated anyhow
+      assert(9 == getCount(tmp.m0));
+
+      assert(!isEmpty(tmp.m1));
+      assert(begin + 9 == getBegin(tmp.m1));
+      NotPresent np0 = getEnd(tmp.m1);
+      (void)np0;
+      assert(11 == getCount(tmp.m1));
+    }
+
+    {
+      auto tmp = splitAt(r01, NotPresent{}, 9);
+      checkBoundedness(r01, tmp);
+
+      assert(!isEmpty(tmp.m0));
+      assert(begin == getBegin(tmp.m0));
+      // Middle has to be calculated anyway
+      assert(begin + 9 == getEnd(tmp.m0));
+      assert(9 == getCount(tmp.m0));
+
+      assert(!isEmpty(tmp.m1));
+      assert(begin + 9 == getBegin(tmp.m1));
+      NotPresent np0 = getEnd(tmp.m1);
+      (void)np0;
+      assert(11 == getCount(tmp.m1));
+    }
+
+    {
+      auto tmp = splitAt(r01, begin + 9, 9);
+      checkBoundedness(r01, tmp);
+
+      assert(!isEmpty(tmp.m0));
+      assert(begin == getBegin(tmp.m0));
+      // Middle has to be calculated anyway
+      assert(begin + 9 == getEnd(tmp.m0));
+      assert(9 == getCount(tmp.m0));
+
+      assert(!isEmpty(tmp.m1));
+      assert(begin + 9 == getBegin(tmp.m1));
+      NotPresent np0 = getEnd(tmp.m1);
+      (void)np0;
+      assert(11 == getCount(tmp.m1));
+    }
+
+    {
+      auto tmp = splitAt(r10, begin + 9, NotPresent{});
+      checkBoundedness(r10, tmp);
+
+      assert(!isEmpty(tmp.m0));
+      assert(begin == getBegin(tmp.m0));
+      // Middle has to be calculated anyway
+      assert(begin + 9 == getEnd(tmp.m0));
+      NotPresent np0 = getCount(tmp.m0);
+      (void)np0;
+
+      assert(!isEmpty(tmp.m1));
+      assert(begin + 9 == getBegin(tmp.m1));
+      assert(end == getEnd(tmp.m1));
+      NotPresent np1 = getCount(tmp.m1);
+      (void)np1;
+    }
+
+    {
+      auto tmp = splitAt(r10, NotPresent{}, 9);
+      checkBoundedness(r10, tmp);
+
+      assert(!isEmpty(tmp.m0));
+      assert(begin == getBegin(tmp.m0));
+      // Middle has to be calculated anyway
+      assert(begin + 9 == getEnd(tmp.m0));
+      assert(9 == getCount(tmp.m0));
+
+      assert(!isEmpty(tmp.m1));
+      assert(begin + 9 == getBegin(tmp.m1));
+      assert(end == getEnd(tmp.m1));
+      NotPresent np1 = getCount(tmp.m1);
+      (void)np1;
+    }
+
+    {
+      auto tmp = splitAt(r10, begin + 9, 9);
+      checkBoundedness(r10, tmp);
+
+      assert(!isEmpty(tmp.m0));
+      assert(begin == getBegin(tmp.m0));
+      assert(begin + 9 == getEnd(tmp.m0));
+      assert(9 == getCount(tmp.m0));
+
+      assert(!isEmpty(tmp.m1));
+      assert(begin + 9 == getBegin(tmp.m1));
+      assert(end == getEnd(tmp.m1));
+      NotPresent np1 = getCount(tmp.m1);
+      (void)np1;
+    }
+
+    {
+      auto tmp = splitAt(r11, begin + 9, NotPresent{});
+      checkBoundedness(r11, tmp);
+
+      assert(!isEmpty(tmp.m0));
+      assert(begin == getBegin(tmp.m0));
+      assert(begin + 9 == getEnd(tmp.m0));
+      NotPresent np0 = getCount(tmp.m0);
+      (void)np0;
+
+      assert(!isEmpty(tmp.m1));
+      assert(begin + 9 == getBegin(tmp.m1));
+      assert(end == getEnd(tmp.m1));
+      NotPresent np1 = getCount(tmp.m1);
+      (void)np1;
+    }
+
+    {
+      auto tmp = splitAt(r11, NotPresent{}, 9);
+      checkBoundedness(r11, tmp);
+
+      assert(!isEmpty(tmp.m0));
+      assert(begin == getBegin(tmp.m0));
+      // Needs to calculate middle anyhow
+      assert(begin + 9 == getEnd(tmp.m0));
+      assert(9 == getCount(tmp.m0));
+
+      assert(!isEmpty(tmp.m1));
+      assert(begin + 9 == getBegin(tmp.m1));
+      assert(end == getEnd(tmp.m1));
+      assert(11 == getCount(tmp.m1));
+    }
+
+    {
+      auto tmp = splitAt(r11, begin + 9, 9);
+      checkBoundedness(r11, tmp);
+
+      assert(!isEmpty(tmp.m0));
+      assert(begin == getBegin(tmp.m0));
+      assert(begin + 9 == getEnd(tmp.m0));
+      assert(9 == getCount(tmp.m0));
+
+      assert(!isEmpty(tmp.m1));
+      assert(begin + 9 == getBegin(tmp.m1));
+      assert(end == getEnd(tmp.m1));
+      assert(11 == getCount(tmp.m1));
+    }
+  }
+
+  template<typename R0, typename R1, typename Result>
+  void testJoinBoundedness(R0 const&, R1 const&, Result const&) {
+    static_assert(IsABoundedRange<R1>::value == IsABoundedRange<Result>::value, "Error");
+  }
+
+  template<typename R>
+  void testJoinImpl(R const& rng) {
+    {
+      auto r = makeRange(begin + 9, NotPresent{}, NotPresent{});
+      auto tmp = join(rng, r);
+      testJoinBoundedness(rng, r, tmp);
+      assert(begin == getBegin(tmp));
+      NotPresent np0 = getEnd(tmp);
+      np0 = getCount(tmp);
+    }
+
+    {
+      auto r = makeRange(begin + 9, end, NotPresent{});
+      auto tmp = join(rng, r);
+      testJoinBoundedness(rng, r, tmp);
+      assert(begin == getBegin(tmp));
+      assert(end == getEnd(tmp));
+      NotPresent np0 = getCount(tmp);
+      (void)np0;
+    }
+
+    {
+      auto r = makeRange(begin + 9, NotPresent{}, 11);
+      auto tmp = join(rng, r);
+      testJoinBoundedness(rng, r, tmp);
+      assert(begin == getBegin(tmp));
+      assert(end == getEnd(tmp));
+    }
+
+    {
+      auto r = makeRange(begin + 9, end, 11);
+      auto tmp = join(rng, r);
+      testJoinBoundedness(rng, r, tmp);
+      assert(begin == getBegin(tmp));
+      assert(end == getEnd(tmp));
+    }
+  }
+
+  void testJoin() {
+    testJoinImpl(r00);
+    testJoinImpl(r01);
+    testJoinImpl(r10);
+    testJoinImpl(r11);
+  }
+
+  typedef unsigned long long SumType;
+
+  template<typename T>
+  SumType sumOver(T x) {
+    SumType tmp = 0;
+    while (!isEmpty(x)) {
+      tmp += *getBegin(x);
+      x = next(x);
+    }
+    return tmp;
+  }
+
+  template<typename T>
+  SumType sumOver2(T x) {
+    SumType tmp0 = 0;
+    SumType tmp1 = 0;
+    SumType tmp2 = 0;
+    SumType tmp3 = 0;
+    auto count = getCount(x);
+    auto cBy4 = count>>2;
+    count -= cBy4 << 2;
+    auto begin = getBegin(x);
+    while (cBy4) {
+      tmp0 += *begin;
+      tmp1 += *(begin+1);
+      tmp2 += *(begin+2);
+      tmp3 += *(begin+3);
+      begin += 4;
+      --cBy4;
+    }
+    SumType tmp = tmp0 + tmp1 + tmp2 + tmp3;
+    while(count) {
+      tmp += *begin++;
+      --count;
+    }
+
+    return tmp;
+  }
+
+  constexpr int loopTimes = 100;
+
+  template<typename T>
+  void performanceTest2(T x) {
+    SumType sum = 0U;
+    timer t;
+    t.start();
+    for (int i=0; i < loopTimes; ++i) {
+      sum += sumOver(x);
+    }
+    auto time = t.stop();
+    std::cout << sum << ' ' << time << std::endl;
+  }
+
+  template<typename T>
+  void performanceTest3(T x) {
+    SumType sum = 0U;
+    timer t;
+    t.start();
+    for (int i=0; i < loopTimes; ++i) {
+      sum += sumOver2(x);
+    }
+    auto time = t.stop();
+    std::cout << sum << ' ' << time << std::endl;
+  }
+
+  void testPerformance() {
+    std::vector<SumType> v(1000000);
+    std::iota(v.begin(), v.end(), 5);
+    auto r0 = makeRange(v.begin(), v.end(), NotPresent{});
+    auto r1 = makeRange(v.begin(), NotPresent{}, v.size());
+    auto r2 = makeRange(v.begin(), v.end(), v.size());
+
+    sumOver(r0);
+    performanceTest2(r0);
+    performanceTest2(r1);
+    performanceTest2(r2);
+
+    performanceTest3(r1);
+    performanceTest3(r2);
+    timer t;
+    t.start();
+    SumType s =0U;
+    for(int i=0; i < loopTimes; ++i) {
+      s += std::accumulate(v.begin(), v.end(), 0);
+    }
+    auto tmp = t.stop();
+    std::cout << s << ' ' << tmp << std::endl;
   }
 } // unnamed namespace
 } // namespace range2
@@ -547,15 +653,12 @@ int main() {
   testGetBegin();
   testGetEnd();
   testGetCount();
-  testGetPredicate();
 
   testAddEnd();
   testAddCount();
-  testAddPredicate();
 
   testRemoveEnd();
   testRemoveCount();
-  testRemovePredicate();
 
   testAddConstantTimeEnd();
   testAddConstantTimeCount();
@@ -565,4 +668,9 @@ int main() {
 
   testIsEmpty();
   testNext();
+
+  testSplitAt();
+  testJoin();
+
+  testPerformance();
 }

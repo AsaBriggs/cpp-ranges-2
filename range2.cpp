@@ -553,6 +553,88 @@ public:
     testJoinImpl(r11);
   }
 
+
+  void testIterator() {
+    iterator<iterator_basis<int const*>> tmp = {{begin}};
+    assert(0 == *tmp);
+    assert(tmp == tmp);
+    assert(!(tmp != tmp));
+
+    // Test successor and equality
+    auto tmp2 = successor(tmp);
+    assert(1 == *tmp2);
+    assert(begin+1 == state(tmp2));
+    assert(1 == deref(tmp2));
+    assert(tmp != tmp2);
+    assert(!(tmp == tmp2));
+
+    // Test relational operators
+    assert(tmp < tmp2);
+    assert(!(tmp2 < tmp));
+
+    assert(tmp <= tmp2);
+    assert(!(tmp2 <= tmp));
+
+    assert(!(tmp > tmp2));
+    assert(tmp2 > tmp);
+
+    assert(!(tmp >= tmp2));
+    assert(tmp2 >= tmp);
+
+    // Test predecessor
+    auto tmp3 = predecessor(tmp2);
+    assert(tmp3 == tmp);
+
+    // Test increment/derement
+    auto tmp4 = tmp;
+    ++tmp4;
+    assert(tmp4 == tmp2);
+    --tmp4;
+    assert(tmp == tmp4);
+
+    // test postincrement
+    assert(0 == *tmp4++);
+    assert(1 == *tmp4);
+
+    // test postdecrement
+    assert(1 == *tmp4--);
+    assert(0 == *tmp4);
+
+    // Test Random Access Operations
+
+    // test operator +=
+    auto tmp5 = tmp;
+    assert(6 == *(tmp5 += 6));
+    assert(6 == *tmp5);
+
+    // test operator -=
+    assert(4 == *(tmp5 -= 2));
+    assert(4 == *tmp5);
+
+    // test indexing operator
+    assert(3 == tmp[3]);
+    assert(0 == *tmp);
+
+    // test operator+
+    assert(4 == *(tmp + 4));
+    assert(4 == *(4 + tmp));
+
+    // test iterator difference
+    assert(2 == ((tmp + 2) - tmp));
+
+    // test operator-
+    assert(2 == *(tmp5 - 2));
+    assert(2 == *(2 - tmp5));
+
+    //Test sink
+    int arr[] = {0, 1, 2};
+    iterator<iterator_basis<int*>> tmp6 = {{&arr[0]}};
+    sink(tmp6 + 2, 55);
+    assert(55 == tmp6[2]);
+
+    // Test operator ->
+  }
+
   typedef unsigned long long SumType;
 
   template<typename T>
@@ -618,6 +700,11 @@ public:
     std::cout << sum << ' ' << time << std::endl;
   }
 
+  template<typename I>
+  iterator<iterator_basis<I>> make_iterator(I x) {
+    return {{x}};
+  }
+
   void testPerformance() {
     std::vector<SumType> v(1000000);
     std::iota(v.begin(), v.end(), 5);
@@ -625,13 +712,22 @@ public:
     auto r1 = makeRange(v.begin(), NotPresent{}, v.size());
     auto r2 = makeRange(v.begin(), v.end(), v.size());
 
+    auto r3 = makeRange(make_iterator(v.begin()), make_iterator(v.end()), NotPresent{});
+    auto r4 = makeRange(make_iterator(v.begin()), NotPresent{}, v.size());
+    auto r5 = makeRange(make_iterator(v.begin()), make_iterator(v.end()), v.size());
+
     sumOver(r0);
     performanceTest2(r0);
     performanceTest2(r1);
     performanceTest2(r2);
+    performanceTest2(r3);
+    performanceTest2(r4);
+    performanceTest2(r5);
 
     performanceTest3(r1);
     performanceTest3(r2);
+    performanceTest3(r4);
+    performanceTest3(r5);
     timer t;
     t.start();
     SumType s =0U;
@@ -673,4 +769,17 @@ int main() {
   testJoin();
 
   testPerformance();
+
+  testIterator();
+
+  reverse_iterator<int const*> a = {{begin}};
+  reverse_iterator<int const*> b = {{end}};
+  auto tmp = makeRange(b, a, NotPresent{});
+  int expected = 19;
+  while (!isEmpty(tmp)) {
+    assert(expected == *getBegin(tmp));
+    --expected;
+    tmp = next(tmp);
+  }
+  assert(20 == std::distance(b, a));
 }

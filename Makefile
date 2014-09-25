@@ -1,7 +1,7 @@
 CC=g++
 CFLAGS=-c -Wall -pedantic --std=c++11 -Os
 LDFLAGS=
-INCLUDES=range2.h
+INCLUDES=range2.h iterator_adapter.h
 SOURCES=range2.cpp
 OBJECTS=$(SOURCES:.cpp=.o)
 EXECUTABLE=range2

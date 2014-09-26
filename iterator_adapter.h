@@ -372,15 +372,12 @@ struct TYPE_HIDDEN_VISIBILITY iterator_impl<iterator<Basis>> {
   }
 };
 
+template<InputIterator I>
+using wrapped_iterator = typename iterator_impl<I>::type;
 
 template<InputIterator I>
-constexpr ALWAYS_INLINE_HIDDEN auto make_iterator(I x) -> decltype( iterator_impl<I>::apply(x) ) {
+constexpr ALWAYS_INLINE_HIDDEN wrapped_iterator<I>  make_iterator(I x) {
   return iterator_impl<I>::apply(x);
-}
-
-template<typename Basis>
-constexpr ALWAYS_INLINE_HIDDEN iterator<Basis> make_iterator(iterator<Basis> x) {
-  return x;
 }
 
 template<BidirectionalIterator I>

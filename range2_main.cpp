@@ -36,10 +36,10 @@ public:
   const std::forward_list<int> slist(begin, end);
 
   // Test Range construction
-  constexpr Range<PtrType, NotPresent, NotPresent> r00 = {begin};
-  constexpr Range<PtrType, NotPresent, Present> r01 = {begin, count};
-  constexpr Range<PtrType, Present, NotPresent> r10 = {begin, end};
-  constexpr Range<PtrType, Present, Present> r11 = {begin, end, count};
+  constexpr auto r00 = make_range(begin, NotPresent{}, NotPresent{});
+  constexpr auto r01 = make_range(begin, NotPresent{}, count);
+  constexpr auto r10 = make_range(begin, end, NotPresent{});
+  constexpr auto r11 = make_range(begin, end, count);
 
   TEST_ASSERT((std::is_same<RangeEffectiveIteratorCategory<Range<PtrType, Present, Present>>, std::random_access_iterator_tag>::value));
   TEST_ASSERT((std::is_same<RangeEffectiveIteratorCategory<Range<std::istream_iterator<char>, Present, Present>>, std::input_iterator_tag>::value));
@@ -100,7 +100,7 @@ public:
     TEST_ASSERT(begin == getBegin(r11));
 
     // Test non-const reference path
-    Range<PtrType, NotPresent, NotPresent> tmp = {begin};
+    auto tmp = make_range(begin, NotPresent{}, NotPresent{});
     PtrType& begin2 = getBegin(tmp);
     assert(begin2 == begin);
   }
@@ -110,7 +110,7 @@ public:
     TEST_ASSERT(end == getEnd(r11));
 
     // Test non-const reference path
-    Range<PtrType, Present, NotPresent> tmp = {begin, end};
+    auto tmp = make_range(begin, end, NotPresent{});
     PtrType& end2 = getEnd(tmp);
     assert(end2 == end);
 
@@ -126,7 +126,7 @@ public:
     TEST_ASSERT(count == getCount(r11));
 
     // Test non-const reference path
-    Range<PtrType, Present, Present> tmp = {begin, end, count};
+    auto tmp = make_range(begin, end, count);
     CountType<PtrType>& count2 = getCount(tmp);
     assert(count2 == count);
 
@@ -346,8 +346,8 @@ public:
     }
   }
 
-  template<typename Range>
-  void testBoundedRange(Range x) {
+  template<typename T>
+  void testBoundedRange(T x) {
     int i = 0;
     while(!isEmpty(x)) {
       assert(i == *getBegin(x));

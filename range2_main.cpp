@@ -10,6 +10,9 @@
 namespace range2 {
 namespace {
 
+// timer taken from
+// https://github.com/psoberoi/stepanov-conversations-course/blob/master/tape/timer.h
+//
 class timer {
 private:
     std::chrono::time_point<std::chrono::high_resolution_clock> start_time;
@@ -24,12 +27,14 @@ public:
     }
 };
 
+// end of timer copy.
+
 #define TEST_ASSERT(x) static_assert(x, "Unexpected")
 
   typedef int const* PtrType;
 
-  constexpr int count = 20;
-  constexpr int arr[count] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19};
+  constexpr int count = 40;
+  constexpr int arr[count] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39};
   constexpr PtrType begin = &arr[0];
   constexpr PtrType end = &arr[0] + count;
 
@@ -373,18 +378,20 @@ public:
     // For r00, r01, r10 & r11 need to check the case of providing
     // a middle, an end, and both a middle and an end. Note that providing just an end forces splitAt
     // to calculate the middle too.
+    constexpr int LHSCount = 9;
+
     {
-      auto tmp = splitAt(r00, begin + 9, NotPresent{});
+      auto tmp = splitAt(r00, begin + LHSCount, NotPresent{});
       checkBoundedness(r00, tmp);
 
       assert(!isEmpty(tmp.m0));
       assert(begin == getBegin(tmp.m0));
-      assert(begin + 9 == getEnd(tmp.m0));
+      assert(begin + LHSCount == getEnd(tmp.m0));
       NotPresent np0 = getCount(tmp.m0);
       (void)np0;
 
       assert(!isEmpty(tmp.m1));
-      assert(begin + 9 == getBegin(tmp.m1));
+      assert(begin + LHSCount == getBegin(tmp.m1));
       NotPresent np1 = getEnd(tmp.m1);
       (void)np1;
       NotPresent np2 = getCount(tmp.m1);
@@ -392,16 +399,16 @@ public:
     }
 
     {
-      auto tmp = splitAt(r00, NotPresent{}, 9);
+      auto tmp = splitAt(r00, NotPresent{}, LHSCount);
       checkBoundedness(r00, tmp);
 
       assert(!isEmpty(tmp.m0));
       assert(begin == getBegin(tmp.m0));
-      assert(begin + 9 == getEnd(tmp.m0));
-      assert(9 == getCount(tmp.m0));
+      assert(begin + LHSCount == getEnd(tmp.m0));
+      assert(LHSCount == getCount(tmp.m0));
 
       assert(!isEmpty(tmp.m1));
-      assert(begin + 9 == getBegin(tmp.m1));
+      assert(begin + LHSCount == getBegin(tmp.m1));
       NotPresent np0 = getEnd(tmp.m1);
       (void)np0;
       NotPresent np1 = getCount(tmp.m1);
@@ -409,16 +416,16 @@ public:
     }
 
     {
-      auto tmp = splitAt(r00, begin + 9, 9);
+      auto tmp = splitAt(r00, begin + LHSCount, LHSCount);
       checkBoundedness(r00, tmp);
 
       assert(!isEmpty(tmp.m0));
       assert(begin == getBegin(tmp.m0));
-      assert(begin + 9 == getEnd(tmp.m0));
-      assert(9 == getCount(tmp.m0));
+      assert(begin + LHSCount == getEnd(tmp.m0));
+      assert(LHSCount == getCount(tmp.m0));
 
       assert(!isEmpty(tmp.m1));
-      assert(begin + 9 == getBegin(tmp.m1));
+      assert(begin + LHSCount == getBegin(tmp.m1));
       NotPresent np0 = getEnd(tmp.m1);
       (void)np0;
       NotPresent np1 = getCount(tmp.m1);
@@ -426,153 +433,153 @@ public:
     }
 
     {
-      auto tmp = splitAt(r01, begin + 9, NotPresent{});
+      auto tmp = splitAt(r01, begin + LHSCount, NotPresent{});
       checkBoundedness(r01, tmp);
 
       assert(!isEmpty(tmp.m0));
       assert(begin == getBegin(tmp.m0));
-      assert(begin + 9 == getEnd(tmp.m0));
+      assert(begin + LHSCount == getEnd(tmp.m0));
       // count has to be calculated anyhow
-      assert(9 == getCount(tmp.m0));
+      assert(LHSCount == getCount(tmp.m0));
 
       assert(!isEmpty(tmp.m1));
-      assert(begin + 9 == getBegin(tmp.m1));
+      assert(begin + LHSCount == getBegin(tmp.m1));
       NotPresent np0 = getEnd(tmp.m1);
       (void)np0;
-      assert(11 == getCount(tmp.m1));
+      assert((count-LHSCount) == getCount(tmp.m1));
     }
 
     {
-      auto tmp = splitAt(r01, NotPresent{}, 9);
+      auto tmp = splitAt(r01, NotPresent{}, LHSCount);
       checkBoundedness(r01, tmp);
 
       assert(!isEmpty(tmp.m0));
       assert(begin == getBegin(tmp.m0));
       // Middle has to be calculated anyway
-      assert(begin + 9 == getEnd(tmp.m0));
-      assert(9 == getCount(tmp.m0));
+      assert(begin + LHSCount == getEnd(tmp.m0));
+      assert(LHSCount == getCount(tmp.m0));
 
       assert(!isEmpty(tmp.m1));
-      assert(begin + 9 == getBegin(tmp.m1));
+      assert(begin + LHSCount == getBegin(tmp.m1));
       NotPresent np0 = getEnd(tmp.m1);
       (void)np0;
-      assert(11 == getCount(tmp.m1));
+      assert((count-LHSCount) == getCount(tmp.m1));
     }
 
     {
-      auto tmp = splitAt(r01, begin + 9, 9);
+      auto tmp = splitAt(r01, begin + LHSCount, LHSCount);
       checkBoundedness(r01, tmp);
 
       assert(!isEmpty(tmp.m0));
       assert(begin == getBegin(tmp.m0));
       // Middle has to be calculated anyway
-      assert(begin + 9 == getEnd(tmp.m0));
-      assert(9 == getCount(tmp.m0));
+      assert(begin + LHSCount == getEnd(tmp.m0));
+      assert(LHSCount == getCount(tmp.m0));
 
       assert(!isEmpty(tmp.m1));
-      assert(begin + 9 == getBegin(tmp.m1));
+      assert(begin + LHSCount == getBegin(tmp.m1));
       NotPresent np0 = getEnd(tmp.m1);
       (void)np0;
-      assert(11 == getCount(tmp.m1));
+      assert((count-LHSCount) == getCount(tmp.m1));
     }
 
     {
-      auto tmp = splitAt(r10, begin + 9, NotPresent{});
+      auto tmp = splitAt(r10, begin + LHSCount, NotPresent{});
       checkBoundedness(r10, tmp);
 
       assert(!isEmpty(tmp.m0));
       assert(begin == getBegin(tmp.m0));
       // Middle has to be calculated anyway
-      assert(begin + 9 == getEnd(tmp.m0));
+      assert(begin + LHSCount == getEnd(tmp.m0));
       NotPresent np0 = getCount(tmp.m0);
       (void)np0;
 
       assert(!isEmpty(tmp.m1));
-      assert(begin + 9 == getBegin(tmp.m1));
+      assert(begin + LHSCount == getBegin(tmp.m1));
       assert(end == getEnd(tmp.m1));
       NotPresent np1 = getCount(tmp.m1);
       (void)np1;
     }
 
     {
-      auto tmp = splitAt(r10, NotPresent{}, 9);
+      auto tmp = splitAt(r10, NotPresent{}, LHSCount);
       checkBoundedness(r10, tmp);
 
       assert(!isEmpty(tmp.m0));
       assert(begin == getBegin(tmp.m0));
       // Middle has to be calculated anyway
-      assert(begin + 9 == getEnd(tmp.m0));
-      assert(9 == getCount(tmp.m0));
+      assert(begin + LHSCount == getEnd(tmp.m0));
+      assert(LHSCount == getCount(tmp.m0));
 
       assert(!isEmpty(tmp.m1));
-      assert(begin + 9 == getBegin(tmp.m1));
+      assert(begin + LHSCount == getBegin(tmp.m1));
       assert(end == getEnd(tmp.m1));
       NotPresent np1 = getCount(tmp.m1);
       (void)np1;
     }
 
     {
-      auto tmp = splitAt(r10, begin + 9, 9);
+      auto tmp = splitAt(r10, begin + LHSCount, LHSCount);
       checkBoundedness(r10, tmp);
 
       assert(!isEmpty(tmp.m0));
       assert(begin == getBegin(tmp.m0));
-      assert(begin + 9 == getEnd(tmp.m0));
-      assert(9 == getCount(tmp.m0));
+      assert(begin + LHSCount == getEnd(tmp.m0));
+      assert(LHSCount == getCount(tmp.m0));
 
       assert(!isEmpty(tmp.m1));
-      assert(begin + 9 == getBegin(tmp.m1));
+      assert(begin + LHSCount == getBegin(tmp.m1));
       assert(end == getEnd(tmp.m1));
       NotPresent np1 = getCount(tmp.m1);
       (void)np1;
     }
 
     {
-      auto tmp = splitAt(r11, begin + 9, NotPresent{});
+      auto tmp = splitAt(r11, begin + LHSCount, NotPresent{});
       checkBoundedness(r11, tmp);
 
       assert(!isEmpty(tmp.m0));
       assert(begin == getBegin(tmp.m0));
-      assert(begin + 9 == getEnd(tmp.m0));
+      assert(begin + LHSCount == getEnd(tmp.m0));
       NotPresent np0 = getCount(tmp.m0);
       (void)np0;
 
       assert(!isEmpty(tmp.m1));
-      assert(begin + 9 == getBegin(tmp.m1));
+      assert(begin + LHSCount == getBegin(tmp.m1));
       assert(end == getEnd(tmp.m1));
       NotPresent np1 = getCount(tmp.m1);
       (void)np1;
     }
 
     {
-      auto tmp = splitAt(r11, NotPresent{}, 9);
+      auto tmp = splitAt(r11, NotPresent{}, LHSCount);
       checkBoundedness(r11, tmp);
 
       assert(!isEmpty(tmp.m0));
       assert(begin == getBegin(tmp.m0));
       // Needs to calculate middle anyhow
-      assert(begin + 9 == getEnd(tmp.m0));
-      assert(9 == getCount(tmp.m0));
+      assert(begin + LHSCount == getEnd(tmp.m0));
+      assert(LHSCount == getCount(tmp.m0));
 
       assert(!isEmpty(tmp.m1));
-      assert(begin + 9 == getBegin(tmp.m1));
+      assert(begin + LHSCount == getBegin(tmp.m1));
       assert(end == getEnd(tmp.m1));
-      assert(11 == getCount(tmp.m1));
+      assert((count-LHSCount) == getCount(tmp.m1));
     }
 
     {
-      auto tmp = splitAt(r11, begin + 9, 9);
+      auto tmp = splitAt(r11, begin + LHSCount, LHSCount);
       checkBoundedness(r11, tmp);
 
       assert(!isEmpty(tmp.m0));
       assert(begin == getBegin(tmp.m0));
-      assert(begin + 9 == getEnd(tmp.m0));
-      assert(9 == getCount(tmp.m0));
+      assert(begin + LHSCount == getEnd(tmp.m0));
+      assert(LHSCount == getCount(tmp.m0));
 
       assert(!isEmpty(tmp.m1));
-      assert(begin + 9 == getBegin(tmp.m1));
+      assert(begin + LHSCount == getBegin(tmp.m1));
       assert(end == getEnd(tmp.m1));
-      assert(11 == getCount(tmp.m1));
+      assert((count-LHSCount) == getCount(tmp.m1));
     }
   }
 
@@ -583,8 +590,9 @@ public:
 
   template<typename R>
   void testJoinImpl(R const& rng) {
+    constexpr int LHSCount = 9;
     {
-      auto r = make_range(begin + 9, NotPresent{}, NotPresent{});
+      auto r = make_range(begin + LHSCount, NotPresent{}, NotPresent{});
       auto tmp = join(rng, r);
       testJoinBoundedness(rng, r, tmp);
       assert(begin == getBegin(tmp));
@@ -593,7 +601,7 @@ public:
     }
 
     {
-      auto r = make_range(begin + 9, end, NotPresent{});
+      auto r = make_range(begin + LHSCount, end, NotPresent{});
       auto tmp = join(rng, r);
       testJoinBoundedness(rng, r, tmp);
       assert(begin == getBegin(tmp));
@@ -603,7 +611,7 @@ public:
     }
 
     {
-      auto r = make_range(begin + 9, NotPresent{}, 11);
+      auto r = make_range(begin + LHSCount, NotPresent{}, count-LHSCount);
       auto tmp = join(rng, r);
       testJoinBoundedness(rng, r, tmp);
       assert(begin == getBegin(tmp));
@@ -611,7 +619,7 @@ public:
     }
 
     {
-      auto r = make_range(begin + 9, end, 11);
+      auto r = make_range(begin + LHSCount, end, count-LHSCount);
       auto tmp = join(rng, r);
       testJoinBoundedness(rng, r, tmp);
       assert(begin == getBegin(tmp));
@@ -724,7 +732,7 @@ public:
     assert(Start < End);
 
     //Check successor and deref
-    int expected = 19;
+    int expected = count-1;
     while(Start != End) {
       assert(expected == *Start);
       --expected;
@@ -802,7 +810,7 @@ public:
   template<typename T>
   void testReverseImpl(T x) {
     auto range = reverse(x);
-    int expected = 19;
+    int expected = count-1;
     while (!isEmpty(range)) {
       assert(expected == deref(getBegin(range)));
       --expected;
@@ -918,13 +926,11 @@ public:
       begin += 2;
       --cBy2;
     }
-    SumType tmp = tmp0 + tmp1;
-    while(count) {
-      tmp += *begin++;
-      --count;
+    if(count) {
+      tmp0 += *begin;
     }
 
-    return tmp;
+    return tmp0+tmp1;
   }
 
   template<typename T>
@@ -952,6 +958,37 @@ public:
     }
 
     return tmp;
+  }
+
+  template<typename T>
+  SumType unrolledSumOver4a(T x) {
+    SumType tmp0 = 0;
+    SumType tmp1 = 0;
+    SumType tmp2 = 0;
+    SumType tmp3 = 0;
+    auto count = getCount(x);
+    auto cBy4 = count/4;
+    count -= cBy4*4;
+    auto range = make_range(getBegin(x), NotPresent{}, NotPresent{});
+    while (cBy4) {
+      auto r1 = next(range);
+      auto r2 = next(r1);
+      auto r3 = next(r2);
+      tmp0 += *getBegin(range);
+      tmp1 += *getBegin(r1);
+      tmp2 += *getBegin(r2);
+      tmp3 += *getBegin(r3);
+      --cBy4;
+      range = next(r3);
+    }
+    SumType tmp4 = 0;
+    while(count) {
+      tmp4 += *getBegin(range);
+      range = next(range);
+      --count;
+    }
+
+    return tmp0 + tmp1 + tmp2 + tmp3 + tmp4;
   }
 
   template<typename T>
@@ -990,7 +1027,7 @@ public:
   }
 
 
-  constexpr int loopTimes = 100;
+  constexpr int loopTimes = 1000;
 
   template<typename T, typename Op>
   void performanceTestImpl(T x, char const* const description, char const* unrollDescription, Op op) {
@@ -1015,6 +1052,7 @@ public:
     performanceTestImpl(x, description, " Unrolled (1)", [](T x) -> SumType { return unrolledSumOver1(x); });
     performanceTestImpl(x, description, " Unrolled (2)", [](T x) -> SumType { return unrolledSumOver2(x); });
     performanceTestImpl(x, description, " Unrolled (4)", [](T x) -> SumType { return unrolledSumOver4(x); });
+    performanceTestImpl(x, description, " Unrolled (4a)", [](T x) -> SumType { return unrolledSumOver4a(x); });
     performanceTestImpl(x, description, " Unrolled (8)", [](T x) -> SumType { return unrolledSumOver8(x); });
   }
 

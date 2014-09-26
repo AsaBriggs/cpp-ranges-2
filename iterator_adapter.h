@@ -56,28 +56,34 @@ using Reference = typename std::iterator_traits<I>::reference;
 // Note that in C++14 std::advance is constexpr anyhow.
 //
 template<InputIterator I>
-constexpr ALWAYS_INLINE_HIDDEN
+ALWAYS_INLINE_HIDDEN
 I forwardByN(I x, DifferenceType<I> n) {
   // n >= 0
-  return n ? forwardByN(++x, n-1) : x;
+  while (n) {
+    ++x, --n;
+  }
+  return x;
 }
 
 template<BidirectionalIterator I>
-constexpr ALWAYS_INLINE_HIDDEN
+ALWAYS_INLINE_HIDDEN
 I backwardByN(I x, DifferenceType<I> n) {
   // n <= 0
-  return n ? backwardByN(--x, n+1) : x;
+  while (n) {
+    --x, ++n;
+  }
+  return x;
 }
 
 template<InputIterator I>
-constexpr ALWAYS_INLINE_HIDDEN
+ALWAYS_INLINE_HIDDEN
 I advance(I x, DifferenceType<I> n, std::input_iterator_tag) {
   // n >= 0
   return forwardByN(x, n);
 }
 
 template<BidirectionalIterator I>
-constexpr ALWAYS_INLINE_HIDDEN
+ALWAYS_INLINE_HIDDEN
 I advance(I x, DifferenceType<I> n, std::bidirectional_iterator_tag) {
   return n < 0 ? backwardByN(x, n) : forwardByN(x, n);
 }
@@ -251,7 +257,7 @@ struct TYPE_DEFAULT_VISIBILITY iterator_basis {
 
   // for random access iterator
   friend constexpr ALWAYS_INLINE_HIDDEN
-  iterator_basis offset(iterator_basis x, difference_type i) { return {x.position += i}; }
+  iterator_basis offset(iterator_basis x, difference_type i) { return {x.position + i}; }
 
   friend constexpr ALWAYS_INLINE_HIDDEN
   difference_type difference(iterator_basis const& x, iterator_basis const& y) { return std::distance(y.position, x.position); }
@@ -291,7 +297,7 @@ struct TYPE_DEFAULT_VISIBILITY reverse_iterator_basis {
 
   // for random access iterator
   friend constexpr ALWAYS_INLINE_HIDDEN
-  reverse_iterator_basis offset(reverse_iterator_basis x, difference_type i) { return {x.position -= i}; }
+    reverse_iterator_basis offset(reverse_iterator_basis x, difference_type i) { return {x.position - i}; }
 
   friend constexpr ALWAYS_INLINE_HIDDEN
   difference_type difference(reverse_iterator_basis const& x, reverse_iterator_basis const& y) { return std::distance(x.position, y.position); }
@@ -332,7 +338,7 @@ struct TYPE_DEFAULT_VISIBILITY skip_iterator_basis {
 
   // for random access iterator
   friend constexpr ALWAYS_INLINE_HIDDEN
-  skip_iterator_basis offset(skip_iterator_basis x, difference_type i) { return {x.position += i * N}; }
+  skip_iterator_basis offset(skip_iterator_basis x, difference_type i) { return {x.position + i * N}; }
 
   friend constexpr ALWAYS_INLINE_HIDDEN
   difference_type difference(skip_iterator_basis const& x, skip_iterator_basis const& y) { return std::distance(y.position, x.position) / N; }
@@ -376,7 +382,7 @@ template<InputIterator I>
 using wrapped_iterator = typename iterator_impl<I>::type;
 
 template<InputIterator I>
-constexpr ALWAYS_INLINE_HIDDEN wrapped_iterator<I>  make_iterator(I x) {
+constexpr ALWAYS_INLINE_HIDDEN wrapped_iterator<I> make_iterator(I x) {
   return iterator_impl<I>::apply(x);
 }
 
@@ -394,7 +400,7 @@ struct TYPE_HIDDEN_VISIBILITY reverse_iterator_impl<iterator<reverse_iterator_ba
   typedef iterator<iterator_basis<I>> type;
 
   static constexpr ALWAYS_INLINE_HIDDEN type apply(iterator<reverse_iterator_basis<I>> x) {
-    return {{state(x)}};
+    return make_iterator(state(x));
   }
 };
 
@@ -417,19 +423,19 @@ struct TYPE_HIDDEN_VISIBILITY skip_iterator_impl {
 
 template<InputIterator I, DifferenceType<I> N, DifferenceType<I> M>
 struct TYPE_HIDDEN_VISIBILITY skip_iterator_impl<iterator<skip_iterator_basis<I, M>>, N> {
-  typedef iterator<skip_iterator_basis<I, N * M>> type;
+  typedef typename skip_iterator_impl<I, N * M>::type type;
 
   static constexpr ALWAYS_INLINE_HIDDEN type apply(iterator<skip_iterator_basis<I, M>> x) {
-    return {{x}};
+    return skip_iterator_impl<I, N * M>::apply(state(x));
   }
 };
 
 template<BidirectionalIterator I, DifferenceType<I> N>
 struct TYPE_HIDDEN_VISIBILITY skip_iterator_impl<iterator<reverse_iterator_basis<I>>, N>{
-  typedef iterator<reverse_iterator<typename skip_iterator_impl<I, N>::type>> type;
+  typedef reverse_iterator<typename skip_iterator_impl<I, N>::type> type;
 
   static constexpr ALWAYS_INLINE_HIDDEN type apply(iterator<reverse_iterator_basis<I>> x) {
-    return {{{skip_iterator_impl<I, N>::apply(state(x))}}};
+    return make_reverse_iterator(skip_iterator_impl<I, N>::apply(state(x)));
   }
 };
 

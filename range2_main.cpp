@@ -1068,14 +1068,22 @@ public:
     auto r4 = make_range(make_iterator(v.begin()), NotPresent{}, v.size());
     auto r5 = make_range(make_iterator(v.begin()), make_iterator(v.end()), v.size());
 
+    //Warm up the cache
     sumOver(r0);
+
     performanceTest(r0, " Bounded Range");
+    performanceTest(reverse(r0), " Reverse Bounded Range");
     performanceTest(r3, " Bounded wrapped Range");
+    performanceTest(reverse(r3), " Reverse Bounded wrapped Range");
 
     performanceTestUnrolled(r1, " Counted Range");
+    performanceTestUnrolled(reverse(r1), " Reversed Counted Range");
     performanceTestUnrolled(r2, " Bounded and Counted Range");
+    performanceTestUnrolled(reverse(r2), " Reversed Bounded and Counted Range");
     performanceTestUnrolled(r4, " Counted wrapped Range");
+    performanceTestUnrolled(reverse(r4), " Reversed Counted wrapped Range");
     performanceTestUnrolled(r5, " Bounded and Counted wrapped Range");
+    performanceTestUnrolled(reverse(r5), " Reverse Bounded and Counted wrapped Range");
 
     performanceTestImpl(std::cref(v), "std::accumulate", "", [](std::reference_wrapper<V const> x) -> SumType { return std::accumulate(x.get().cbegin(), x.get().cend(), SumType(0)); });
    }

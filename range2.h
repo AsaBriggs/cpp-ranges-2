@@ -21,23 +21,23 @@
 
 namespace range2 {
 
-struct ConstantComplexity { typedef ConstantComplexity type; };
-struct LogarithmicComplexity { typedef LogarithmicComplexity type; };
-struct LinearComplexity { typedef LinearComplexity type; };
-struct LogarithmicLinearComplexity { typedef LogarithmicLinearComplexity type; };
-struct UndefinedComplexity { typedef UndefinedComplexity type; };
+struct TYPE_HIDDEN_VISIBILITY ConstantComplexity { typedef ConstantComplexity type; };
+struct TYPE_HIDDEN_VISIBILITY LogarithmicComplexity { typedef LogarithmicComplexity type; };
+struct TYPE_HIDDEN_VISIBILITY LinearComplexity { typedef LinearComplexity type; };
+struct TYPE_HIDDEN_VISIBILITY LogarithmicLinearComplexity { typedef LogarithmicLinearComplexity type; };
+struct TYPE_HIDDEN_VISIBILITY UndefinedComplexity { typedef UndefinedComplexity type; };
 
 
 template<bool p, typename T, typename F>
-struct if_;
+struct TYPE_HIDDEN_VISIBILITY if_;
 
 template<typename T, typename F>
-struct if_<true, T, F> {
+struct TYPE_HIDDEN_VISIBILITY if_<true, T, F> {
   typedef T type;
 };
 
 template<typename T, typename F>
-struct if_<false, T, F> {
+struct TYPE_HIDDEN_VISIBILITY if_<false, T, F> {
   typedef F type;
 };
 
@@ -45,8 +45,8 @@ struct if_<false, T, F> {
 template<typename Op, typename... Params>
 struct TYPE_HIDDEN_VISIBILITY Complexity;
 
-struct Advance { typedef Advance type; };
-struct Distance { typedef Distance type; };
+struct TYPE_HIDDEN_VISIBILITY Advance { typedef Advance type; };
+struct TYPE_HIDDEN_VISIBILITY Distance { typedef Distance type; };
 
 template<typename Iterator>
 using IteratorCategory = typename std::iterator_traits<Iterator>::iterator_category;
@@ -58,7 +58,7 @@ template<typename Iterator>
 struct TYPE_HIDDEN_VISIBILITY Complexity<Distance, Iterator> : if_<std::is_convertible<IteratorCategory<Iterator>, std::random_access_iterator_tag>::value, ConstantComplexity, LinearComplexity> {};
 
 template<typename T0, typename T1>
-struct pair
+struct TYPE_DEFAULT_VISIBILITY pair
 {
     typedef pair type;
     T0 m0;
@@ -388,7 +388,7 @@ template<typename Iterator>
 struct TYPE_HIDDEN_VISIBILITY ConstantTimeEnd<Range<Iterator, NotPresent, Present>> : std::is_same<ConstantComplexity, typename Complexity<Advance, Iterator>::type> {};
 
 template<typename T>
-struct CanAddEndInLinearTime {};
+struct TYPE_HIDDEN_VISIBILITY CanAddEndInLinearTime {};
 
 // Can add a count in linear time if we can't add it in constant time, the iteration is repeatable
 // and a count is present to terminate the loop.
@@ -400,7 +400,7 @@ struct CanAddEndInLinearTime<Range<Iterator, NotPresent, Count>> :
    !std::is_same<Count, NotPresent>::value>
 {};
 
-struct AddEnd { typedef AddEnd type; };
+struct TYPE_HIDDEN_VISIBILITY AddEnd { typedef AddEnd type; };
 
 template<typename Iterator, typename Count>
 struct TYPE_HIDDEN_VISIBILITY Complexity<AddEnd, Range<Iterator, Present, Count>> : ConstantComplexity {};
@@ -477,7 +477,7 @@ template<typename Iterator>
 struct TYPE_HIDDEN_VISIBILITY ConstantTimeCount<Range<Iterator, Present, NotPresent>> : std::is_same<ConstantComplexity, typename Complexity<Distance, Iterator>::type> {};
 
 template<typename T>
-struct CanAddCountInLinearTime {};
+struct TYPE_HIDDEN_VISIBILITY CanAddCountInLinearTime {};
 
 // Can add a count in linear time if we can't add it in constant time, the iteration is repeatable
 // and a count is present to terminate the loop.
@@ -489,7 +489,7 @@ struct CanAddCountInLinearTime<Range<Iterator, End, NotPresent>> :
   !std::is_same<End, NotPresent>::value>
 {};
 
-struct AddCount { typedef AddCount type; };
+struct TYPE_HIDDEN_VISIBILITY AddCount { typedef AddCount type; };
 
 template<typename Iterator, typename End>
 struct TYPE_HIDDEN_VISIBILITY Complexity<AddCount, Range<Iterator, End, Present>> : ConstantComplexity {};
@@ -546,7 +546,7 @@ addLinearTimeCount(Range<Iterator, End, NotPresent> const& x) {
   return make_range(getBegin(x), getEnd(x), count);
 }
 
-struct SplitAtImpl { typedef SplitAtImpl type; };
+struct TYPE_HIDDEN_VISIBILITY SplitAtImpl { typedef SplitAtImpl type; };
 
 
 template<typename Range, typename Middle, typename LHSCount, typename Enable=void>
@@ -641,7 +641,7 @@ splitAt(Range<Iterator, End, Count> const& x, Middle middle, LHSCount lhsCount)
   return SplitImpl<Range<Iterator, End, Count>, Middle, LHSCount>::apply(x, cmove(middle), cmove(lhsCount));
 }
 
-struct SplitAt { typedef SplitAt type; };
+struct TYPE_HIDDEN_VISIBILITY SplitAt { typedef SplitAt type; };
 template<typename Iterator, typename End, typename Count, typename Middle, typename LHSCount>
 struct TYPE_HIDDEN_VISIBILITY Complexity<SplitAt, Range<Iterator, End, Count>, Middle, LHSCount> : Complexity<SplitAtImpl, Range<Iterator, End, Count>, Middle, LHSCount> {};
 
@@ -670,10 +670,10 @@ join(Range<Iterator0, End0, Count0> const& x, Range<Iterator1, End1, Count1> con
   return make_range(getBegin(x), getEnd(y), sumCount(getCount(x), getCount(y)));
 }
 
-struct Join { typedef Join type; };
+struct TYPE_HIDDEN_VISIBILITY Join { typedef Join type; };
 
 template<typename Iterator0, typename End0, typename Count0, typename Iterator1, typename End1, typename Count1>
-struct Complexity<Join, Range<Iterator0, End0, Count0>, Range<Iterator1, End1, Count1>> : ConstantComplexity {};
+struct TYPE_HIDDEN_VISIBILITY Complexity<Join, Range<Iterator0, End0, Count0>, Range<Iterator1, End1, Count1>> : ConstantComplexity {};
 
 
 template<typename Iterator0, typename End0, typename Count0, typename Iterator1>
@@ -686,10 +686,10 @@ join(Range<Iterator0, End0, Count0> const& x, Range<Iterator1, NotPresent, Prese
 }
 
 template<typename Iterator0, typename End0, typename Count0, typename Iterator1>
-struct Complexity<Join, Range<Iterator0, End0, Count0>, Range<Iterator1, NotPresent, Present>> : Complexity<AddEnd, Range<Iterator1, NotPresent, Present>> {};
+struct TYPE_HIDDEN_VISIBILITY Complexity<Join, Range<Iterator0, End0, Count0>, Range<Iterator1, NotPresent, Present>> : Complexity<AddEnd, Range<Iterator1, NotPresent, Present>> {};
 
 
-struct Reverse_Impl { typedef Reverse_Impl type; };
+struct TYPE_HIDDEN_VISIBILITY Reverse_Impl { typedef Reverse_Impl type; };
 
 template<typename T>
 struct TYPE_HIDDEN_VISIBILITY reverse_impl;
@@ -702,7 +702,7 @@ struct TYPE_HIDDEN_VISIBILITY reverse_impl<Range<Iterator, Present, Count>> {
 };
 
 template<typename Iterator, typename Count>
-struct Complexity<Reverse_Impl, Range<Iterator, Present, Count>> : ConstantComplexity {};
+struct TYPE_HIDDEN_VISIBILITY Complexity<Reverse_Impl, Range<Iterator, Present, Count>> : ConstantComplexity {};
 
 template<typename Iterator>
 struct TYPE_HIDDEN_VISIBILITY reverse_impl<Range<Iterator, NotPresent, Present>> {
@@ -712,7 +712,7 @@ struct TYPE_HIDDEN_VISIBILITY reverse_impl<Range<Iterator, NotPresent, Present>>
 };
 
 template<typename Iterator>
-struct Complexity<Reverse_Impl, Range<Iterator, NotPresent, Present>> : Complexity<AddEnd, Range<Iterator, NotPresent, Present>> {};
+struct TYPE_HIDDEN_VISIBILITY Complexity<Reverse_Impl, Range<Iterator, NotPresent, Present>> : Complexity<AddEnd, Range<Iterator, NotPresent, Present>> {};
 
 
 template<typename Iterator, typename End, typename Count>
@@ -724,10 +724,10 @@ reverse(Range<Iterator, End, Count> const& x) -> decltype ( reverse_impl<Range<I
   return reverse_impl<Range<Iterator, End, Count>>::apply(x);
 }
 
-struct Reverse { typedef Reverse type; };
+struct TYPE_HIDDEN_VISIBILITY Reverse { typedef Reverse type; };
 
 template<typename Iterator, typename End, typename Count>
-struct Complexity<Reverse, Range<Iterator, End, Count>> : Complexity<Reverse_Impl, Range<Iterator, End, Count>> {};
+struct TYPE_HIDDEN_VISIBILITY Complexity<Reverse, Range<Iterator, End, Count>> : Complexity<Reverse_Impl, Range<Iterator, End, Count>> {};
 
 
 template<long long N>

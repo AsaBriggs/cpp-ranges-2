@@ -274,11 +274,6 @@ ALWAYS_INLINE_HIDDEN auto sink(iterator_basis<I> const& x, T&&... y) -> decltype
   return sink(state(x), std::forward<T>(y)...);
 }
 
-template<InputIterator I>
-constexpr ALWAYS_INLINE_HIDDEN iterator<iterator_basis<I>> make_iterator(I x) {
-  return {{x}};
-}
-
 template <BidirectionalIterator I>
 struct TYPE_DEFAULT_VISIBILITY reverse_iterator_basis {
   typedef I state_type;
@@ -360,6 +355,11 @@ ALWAYS_INLINE_HIDDEN auto sink(skip_iterator_basis<I, N> const& x, T&&... y) -> 
   return sink(state(x), std::forward<T>(y)...);
 }
 
+template<InputIterator I>
+constexpr ALWAYS_INLINE_HIDDEN iterator<iterator_basis<I>> make_iterator(I x) {
+  return {{x}};
+}
+
 template<BidirectionalIterator I>
 struct TYPE_HIDDEN_VISIBILITY reverse_iterator_impl {
   typedef iterator<reverse_iterator_basis<I>> type;
@@ -385,7 +385,6 @@ template<BidirectionalIterator I>
 constexpr ALWAYS_INLINE_HIDDEN reverse_iterator<I> make_reverse_iterator(I x) {
   return reverse_iterator_impl<I>::apply(x);
 }
-
 
 template<InputIterator I, DifferenceType<I> N>
 struct TYPE_HIDDEN_VISIBILITY skip_iterator_impl {

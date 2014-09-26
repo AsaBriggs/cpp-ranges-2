@@ -95,7 +95,6 @@ I advance(I x, DifferenceType<I> n) {
 }
 
 
-
 template<typename Iterator, typename Enable=void>
 struct TYPE_HIDDEN_VISIBILITY SpecialisedSink : std::false_type {};
 
@@ -356,8 +355,32 @@ ALWAYS_INLINE_HIDDEN auto sink(skip_iterator_basis<I, N> const& x, T&&... y) -> 
 }
 
 template<InputIterator I>
-constexpr ALWAYS_INLINE_HIDDEN iterator<iterator_basis<I>> make_iterator(I x) {
-  return {{x}};
+struct TYPE_HIDDEN_VISIBILITY iterator_impl {
+  typedef iterator<iterator_basis<I>> type;
+
+  static constexpr ALWAYS_INLINE_HIDDEN type apply(I x) {
+    return {{x}};
+  }
+};
+
+template<typename Basis>
+struct TYPE_HIDDEN_VISIBILITY iterator_impl<iterator<Basis>> {
+  typedef iterator<Basis> type;
+
+  static constexpr ALWAYS_INLINE_HIDDEN type apply(iterator<Basis> x) {
+    return x;
+  }
+};
+
+
+template<InputIterator I>
+constexpr ALWAYS_INLINE_HIDDEN auto make_iterator(I x) -> decltype( iterator_impl<I>::apply(x) ) {
+  return iterator_impl<I>::apply(x);
+}
+
+template<typename Basis>
+constexpr ALWAYS_INLINE_HIDDEN iterator<Basis> make_iterator(iterator<Basis> x) {
+  return x;
 }
 
 template<BidirectionalIterator I>

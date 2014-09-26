@@ -45,18 +45,52 @@ public:
   TEST_ASSERT((std::is_same<RangeEffectiveIteratorCategory<Range<std::istream_iterator<char>, Present, Present>>, std::input_iterator_tag>::value));
   TEST_ASSERT((std::is_same<RangeEffectiveIteratorCategory<Range<std::forward_list<char>::iterator, Present, Present>>, std::forward_iterator_tag>::value));
 
-  void testEquality() {
-    TEST_ASSERT(r00 == r00);
-    TEST_ASSERT(r01 == r01);
-    TEST_ASSERT(r10 == r10);
-    TEST_ASSERT(r11 == r11);
+  template<typename T>
+  void testRelationalOperators(T lesser, T greater) {
+    assert(lesser == lesser);
+    assert(!(lesser != lesser));
+
+    assert(greater == greater);
+    assert(!(greater != greater));
+
+    assert(lesser != greater);
+    assert(!(lesser == greater));
+
+    assert(!(lesser < lesser));
+    assert(lesser <= lesser);
+    assert(lesser >= lesser);
+    assert(!(lesser > lesser));
+
+    assert(!(greater < greater));
+    assert(greater <= greater);
+    assert(greater >= greater);
+    assert(!(greater > greater));
+
+    assert(lesser < greater);
+    assert(lesser <= greater);
+    assert(!(lesser > greater));
+    assert(!(lesser >= greater));
+
+    assert(!(greater < lesser));
+    assert(!(greater <= lesser));
+    assert(greater > lesser);
+    assert(greater >= lesser);
   }
 
-  void testInequality() {
-    TEST_ASSERT(!(r00 != r00));
-    TEST_ASSERT(!(r01 != r01));
-    TEST_ASSERT(!(r10 != r10));
-    TEST_ASSERT(!(r11 != r11));
+  void testPair() {
+    constexpr auto x = make_pair(1, 2);
+    constexpr auto y = make_pair(2, 3);
+    testRelationalOperators(x, y);
+  }
+
+  void testPresentNotPresent() {
+    TEST_ASSERT(Present{} == Present{});
+    TEST_ASSERT(!(Present{} != Present{}));
+    TEST_ASSERT(!(Present{} < Present{}));
+
+    TEST_ASSERT(NotPresent{} == NotPresent{});
+    TEST_ASSERT(!(NotPresent{} != NotPresent{}));
+    TEST_ASSERT(!(NotPresent{} < NotPresent{}));
   }
 
   void testGetBegin() {
@@ -117,6 +151,44 @@ public:
     TEST_ASSERT(x == getCount(addCount(r01, x)));
     TEST_ASSERT(x == getCount(addCount(r10, x)));
     TEST_ASSERT(x == getCount(addCount(r11, x)));
+  }
+
+  void testRangeRelationals() {
+    // tests first clause of <
+    testRelationalOperators(r00, next(r00));
+    testRelationalOperators(r01, next(r01));
+    testRelationalOperators(r10, next(r10));
+    testRelationalOperators(r11, next(r11));
+
+    {
+      auto tmp = r01;
+      tmp = addCount(tmp, getCount(tmp) - 1);
+      testRelationalOperators(tmp, r01);
+    }
+
+    {
+      auto tmp = r10;
+      auto i = getEnd(tmp);
+      --i;
+      tmp = addEnd(tmp, i);
+      testRelationalOperators(tmp, r10);
+    }
+
+    {
+      auto tmp = r11;
+      tmp = addCount(tmp, getCount(tmp) - 1);
+      auto i = getEnd(tmp);
+      --i;
+      tmp = addEnd(tmp, i);
+      testRelationalOperators(tmp, r11);
+    }
+
+    // Check the third clause of <, where Count differs
+    {
+      auto tmp = r11;
+      tmp = addCount(tmp, getCount(tmp) - 1);
+      testRelationalOperators(tmp, r11);
+    }
   }
 
   void testRemoveEnd() {
@@ -806,6 +878,7 @@ public:
     testReverseSkipImpl(r11);
   }
 
+
   typedef unsigned long long SumType;
 
   template<typename T>
@@ -819,14 +892,50 @@ public:
   }
 
   template<typename T>
-  SumType unrolledSumOver(T x) {
+  SumType unrolledSumOver1(T x) {
+    auto count = getCount(x);
+    auto begin = getBegin(x);
+    SumType tmp = 0;
+    while(count) {
+      tmp += *begin++;
+      --count;
+    }
+
+    return tmp;
+  }
+
+  template<typename T>
+  SumType unrolledSumOver2(T x) {
+    SumType tmp0 = 0;
+    SumType tmp1 = 0;
+    auto count = getCount(x);
+    auto cBy2 = count/2;
+    count -= cBy2*2;
+    auto begin = getBegin(x);
+    while (cBy2) {
+      tmp0 += *begin;
+      tmp1 += *(begin+1);
+      begin += 2;
+      --cBy2;
+    }
+    SumType tmp = tmp0 + tmp1;
+    while(count) {
+      tmp += *begin++;
+      --count;
+    }
+
+    return tmp;
+  }
+
+  template<typename T>
+  SumType unrolledSumOver4(T x) {
     SumType tmp0 = 0;
     SumType tmp1 = 0;
     SumType tmp2 = 0;
     SumType tmp3 = 0;
     auto count = getCount(x);
-    auto cBy4 = count>>2;
-    count -= cBy4 << 2;
+    auto cBy4 = count/4;
+    count -= cBy4*4;
     auto begin = getBegin(x);
     while (cBy4) {
       tmp0 += *begin;
@@ -845,46 +954,73 @@ public:
     return tmp;
   }
 
+  template<typename T>
+  SumType unrolledSumOver8(T x) {
+    SumType tmp0 = 0;
+    SumType tmp1 = 0;
+    SumType tmp2 = 0;
+    SumType tmp3 = 0;
+    SumType tmp4 = 0;
+    SumType tmp5 = 0;
+    SumType tmp6 = 0;
+    SumType tmp7 = 0;
+    auto count = getCount(x);
+    auto cBy8 = count/8;
+    count -= cBy8*8;
+    auto begin = getBegin(x);
+    while (cBy8) {
+      tmp0 += *begin;
+      tmp1 += *(begin+1);
+      tmp2 += *(begin+2);
+      tmp3 += *(begin+3);
+      tmp4 += *(begin+4);
+      tmp5 += *(begin+5);
+      tmp6 += *(begin+6);
+      tmp7 += *(begin+7);
+      begin += 8;
+      --cBy8;
+    }
+    SumType tmp = tmp0 + tmp1 + tmp2 + tmp3 + tmp4 + tmp5 + tmp6 + tmp7;
+    while(count) {
+      tmp += *begin++;
+      --count;
+    }
+
+    return tmp;
+  }
+
+
   constexpr int loopTimes = 100;
 
-  template<typename T>
-  void performanceTest2(T x, char const* const description) {
+  template<typename T, typename Op>
+  void performanceTestImpl(T x, char const* const description, char const* unrollDescription, Op op) {
     SumType sum = 0U;
     timer t;
     t.start();
     for (int i=0; i < loopTimes; ++i) {
-      sum += sumOver(x);
+      sum += op(x);
     }
     auto time = t.stop();
-    std::cout << sum << ' ' << time << ' ' << description << std::endl;
+    std::cout << sum << ' ' << time << unrollDescription << description << std::endl;
+  }
+
+  template<typename T>
+  void performanceTest(T x, char const* const description) {
+    performanceTestImpl(x, description, "", [](T x) -> SumType { return sumOver(x); });
   }
 
   template<typename T>
   void performanceTestUnrolled(T x, char const* const description) {
-    SumType sum = 0U;
-    timer t;
-    t.start();
-    for (int i=0; i < loopTimes; ++i) {
-      sum += unrolledSumOver(x);
-    }
-    auto time = t.stop();
-    std::cout << sum << ' ' << time << " Unrolled " << description << std::endl;
-  }
-
-  template<typename Container>
-  void performanceTestRawLoop(Container const& c) {
-    timer t;
-    t.start();
-    SumType s =0U;
-    for(int i=0; i < loopTimes; ++i) {
-      s = std::accumulate(c.begin(), c.end(), s);
-    }
-    auto tmp = t.stop();
-    std::cout << s << ' ' << tmp << " Raw loop" << std::endl;
+    performanceTestImpl(x, description, "", [](T x) -> SumType { return sumOver(x); });
+    performanceTestImpl(x, description, " Unrolled (1)", [](T x) -> SumType { return unrolledSumOver1(x); });
+    performanceTestImpl(x, description, " Unrolled (2)", [](T x) -> SumType { return unrolledSumOver2(x); });
+    performanceTestImpl(x, description, " Unrolled (4)", [](T x) -> SumType { return unrolledSumOver4(x); });
+    performanceTestImpl(x, description, " Unrolled (8)", [](T x) -> SumType { return unrolledSumOver8(x); });
   }
 
   void testPerformance() {
-    std::vector<SumType> v(1000000);
+    typedef std::vector<SumType> V;
+    V v(1000000);
     std::iota(v.begin(), v.end(), 5);
     auto r0 = make_range(v.begin(), v.end(), NotPresent{});
     auto r1 = make_range(v.begin(), NotPresent{}, v.size());
@@ -895,28 +1031,24 @@ public:
     auto r5 = make_range(make_iterator(v.begin()), make_iterator(v.end()), v.size());
 
     sumOver(r0);
-    performanceTest2(r0, "Bounded Range");
-    performanceTest2(r1, "Counted Range");
-    performanceTest2(r2, "Bounded and Counted Range");
-    performanceTest2(r3, "Bounded wrapped Range");
-    performanceTest2(r4, "Counted wrapped Range");
-    performanceTest2(r5, "Bounded and Counted wrapped Range");
+    performanceTest(r0, " Bounded Range");
+    performanceTest(r3, " Bounded wrapped Range");
 
-    performanceTestUnrolled(r1, "Counted Range");
-    performanceTestUnrolled(r2, "Bounded and Counted Range");
-    performanceTestUnrolled(r4, "Counted wrapped Range");
-    performanceTestUnrolled(r5, "Bounded and Counted wrapped Range");
+    performanceTestUnrolled(r1, " Counted Range");
+    performanceTestUnrolled(r2, " Bounded and Counted Range");
+    performanceTestUnrolled(r4, " Counted wrapped Range");
+    performanceTestUnrolled(r5, " Bounded and Counted wrapped Range");
 
-    performanceTestRawLoop(v);
-  }
+    performanceTestImpl(std::cref(v), "std::accumulate", "", [](std::reference_wrapper<V const> x) -> SumType { return std::accumulate(x.get().cbegin(), x.get().cend(), SumType(0)); });
+   }
 } // unnamed namespace
 } // namespace range2
 
 using namespace range2;
 
 int main() {
-  testEquality();
-  testInequality();
+  testPair();
+  testPresentNotPresent();
 
   testGetBegin();
   testGetEnd();
@@ -924,6 +1056,9 @@ int main() {
 
   testAddEnd();
   testAddCount();
+
+  // Test depends on ability to get & add both end & count.z
+  testRangeRelationals();
 
   testRemoveEnd();
   testRemoveCount();

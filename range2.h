@@ -771,17 +771,17 @@ template<typename Iterator, typename End, typename Count>
 struct TYPE_HIDDEN_VISIBILITY Complexity<Reverse, Range<Iterator, End, Count>> : Complexity<Reverse_Impl, Range<Iterator, End, Count>> {};
 
 
-template<long long N>
+template<SkipIteratorStride N>
 ALWAYS_INLINE_HIDDEN NotPresent make_skip_iterator_impl(NotPresent x) {
   return x;
 }
 
-template<long long N, typename Iterator>
+template<SkipIteratorStride N, typename Iterator>
 ALWAYS_INLINE_HIDDEN auto make_skip_iterator_impl(Iterator x) -> decltype( make_skip_iterator<N>(x) ) {
   return make_skip_iterator<N>(x);
 }
 
-template<long long N, typename Iterator, typename End, typename Count>
+template<SkipIteratorStride N, typename Iterator, typename End, typename Count>
 constexpr ALWAYS_INLINE_HIDDEN auto
 skip(Range<Iterator, End, Count> const& x) -> decltype ( make_range(make_skip_iterator<N>(getBegin(x)), make_skip_iterator_impl<N>(getEnd(x)), getCount(x)/N) ) {
 

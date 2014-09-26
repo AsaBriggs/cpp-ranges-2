@@ -344,6 +344,10 @@ struct TYPE_DEFAULT_VISIBILITY skip_iterator_basis {
 
   friend constexpr ALWAYS_INLINE_HIDDEN
   state_type state(skip_iterator_basis const& x) { return x.position; }
+
+  // If you want a reverse stride then explicitly specify a positive stride and then perform a reverse.
+  // This really only make sense at the Range level which knows about the limit iterators.
+  static_assert(N>0, "Stride must be greater than 0");
 };
 
 
@@ -416,7 +420,11 @@ struct TYPE_HIDDEN_VISIBILITY skip_iterator_impl<iterator<reverse_iterator_basis
 template<InputIterator I, DifferenceType<I> N>
 using skip_iterator = typename skip_iterator_impl<I, N>::type;
 
-template<long long N, InputIterator I>
+// For the function skip_iterator we can't get the DifferenceType before knowing the iterator
+// but then this would mean callers have to specify 
+typedef long long SkipIteratorStride;
+
+template<SkipIteratorStride N, InputIterator I>
 constexpr ALWAYS_INLINE_HIDDEN skip_iterator<I, N> make_skip_iterator(I x) {
   return skip_iterator_impl<I, N>::apply(x);
 }

@@ -15,6 +15,10 @@
 #include "compiler_specifics.h"
 #endif
 
+#ifndef INCLUDED_COMPARISONS
+#include "comparisons.h"
+#endif
+
 namespace range2 {
 
 //
@@ -161,9 +165,6 @@ struct TYPE_DEFAULT_VISIBILITY iterator {
   friend ALWAYS_INLINE_HIDDEN
   bool operator==(const iterator& x, const iterator& y) { return state(x) == state(y); }
 
-  friend constexpr ALWAYS_INLINE_HIDDEN
-  bool operator!=(const iterator& x, const iterator& y) { return !(x == y); }
-
   // for bidirectional iterator
   friend constexpr ALWAYS_INLINE_HIDDEN
   iterator predecessor(iterator const& x) { return {predecessor(x.basis)}; }
@@ -215,16 +216,11 @@ struct TYPE_DEFAULT_VISIBILITY iterator {
 
   friend constexpr ALWAYS_INLINE_HIDDEN
   bool operator<(const iterator& x, const iterator& y) { return x - y < 0; }
-
-  friend constexpr ALWAYS_INLINE_HIDDEN
-  bool operator>(const iterator& x, const iterator& y) { return y < x; }
-
-  friend constexpr ALWAYS_INLINE_HIDDEN
-  bool operator<=(const iterator& x, const iterator& y) { return !(y < x); }
-
-  friend constexpr ALWAYS_INLINE_HIDDEN
-  bool operator>=(const iterator& x, const iterator& y) { return !(x < y); }
 };
+
+template <IteratorBasis B>
+struct GenerateDerivedComparisonOperations<iterator<B>> : std::true_type {};
+
 
 template<IteratorBasis I>
 struct TYPE_HIDDEN_VISIBILITY SpecialisedSink<iterator<I>> : std::true_type {};

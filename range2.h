@@ -19,6 +19,10 @@
 #include "iterator_adapter.h"
 #endif
 
+#ifndef INCLUDED_COMPARISONS
+#include "comparisons.h"
+#endif
+
 namespace range2 {
 
 struct TYPE_HIDDEN_VISIBILITY ConstantComplexity { typedef ConstantComplexity type; };
@@ -64,7 +68,6 @@ typename std::remove_reference<T>::type&& cmove(T&& t) {
   return static_cast<typename std::remove_reference<T>::type&&>(t);
 }
 
-
 template<typename T0, typename T1>
 struct TYPE_DEFAULT_VISIBILITY pair
 {
@@ -76,20 +79,11 @@ struct TYPE_DEFAULT_VISIBILITY pair
     bool operator== (type const& x, type const& y) { return (x.m0 == y.m0) && (x.m1 == y.m1); }
 
     friend constexpr ALWAYS_INLINE_HIDDEN
-    bool operator!= (type const& x, type const& y) { return !(x == y); }
-
-    friend constexpr ALWAYS_INLINE_HIDDEN
     bool operator< (type const& x, type const& y) { return (x.m0 < y.m0) || (!(y.m0 < x.m0) && (x.m1 < y.m1)); }
-
-    friend constexpr ALWAYS_INLINE_HIDDEN
-    bool operator<= (type const& x, type const& y) { return !(y < x); }
-
-    friend constexpr ALWAYS_INLINE_HIDDEN
-    bool operator> (type const& x, type const& y) { return y < x; }
-
-    friend constexpr ALWAYS_INLINE_HIDDEN
-    bool operator>= (type const& x, type const& y) { return !(x < y); }
 };
+
+template<typename T0, typename T1>
+struct GenerateDerivedComparisonOperations<pair<T0, T1>> : std::true_type {};
 
 template<typename T0, typename T1>
 constexpr ALWAYS_INLINE_HIDDEN pair<T0, T1> make_pair(T0 m0, T1 m1) {
@@ -103,20 +97,11 @@ struct TYPE_DEFAULT_VISIBILITY NotPresent {
     bool operator== (type, type) { return true; }
 
     friend constexpr ALWAYS_INLINE_HIDDEN
-    bool operator!= (type, type) { return false; }
-
-    friend constexpr ALWAYS_INLINE_HIDDEN
     bool operator< (type const& x, type const& y) { return false; }
-
-    friend constexpr ALWAYS_INLINE_HIDDEN
-    bool operator<= (type const& x, type const& y) { return !(y < x); }
-
-    friend constexpr ALWAYS_INLINE_HIDDEN
-    bool operator> (type const& x, type const& y) { return y < x; }
-
-    friend constexpr ALWAYS_INLINE_HIDDEN
-    bool operator>= (type const& x, type const& y) { return !(x < y); }
 };
+
+template<>
+struct GenerateDerivedComparisonOperations<NotPresent> : std::true_type {};
 
 struct TYPE_DEFAULT_VISIBILITY Present {
     typedef Present type;
@@ -125,21 +110,11 @@ struct TYPE_DEFAULT_VISIBILITY Present {
     bool operator== (type, type) { return true; }
 
     friend constexpr ALWAYS_INLINE_HIDDEN
-    bool operator!= (type, type) { return false; }
-
-    friend constexpr ALWAYS_INLINE_HIDDEN
     bool operator< (type const& x, type const& y) { return false; }
-
-    friend constexpr ALWAYS_INLINE_HIDDEN
-    bool operator<= (type const& x, type const& y) { return !(y < x); }
-
-    friend constexpr ALWAYS_INLINE_HIDDEN
-    bool operator> (type const& x, type const& y) { return y < x; }
-
-    friend constexpr ALWAYS_INLINE_HIDDEN
-    bool operator>= (type const& x, type const& y) { return !(x < y); }
 };
 
+template<>
+struct GenerateDerivedComparisonOperations<Present> : std::true_type {};
 
 template<typename Iterator, typename End=NotPresent, typename Count=NotPresent>
 struct TYPE_DEFAULT_VISIBILITY Range;
@@ -215,9 +190,6 @@ struct TYPE_DEFAULT_VISIBILITY Range
 
     friend constexpr ALWAYS_INLINE_HIDDEN
     bool operator==(type const& x, type const& y) { return x.begin == y.begin; }
-
-    friend constexpr ALWAYS_INLINE_HIDDEN
-    bool operator!=(type const& x, type const& y) { return !(x==y); }
 };
 
 template<typename Iterator>
@@ -237,9 +209,6 @@ struct TYPE_DEFAULT_VISIBILITY Range<Iterator, Present, NotPresent>
 
     friend constexpr ALWAYS_INLINE_HIDDEN
     bool operator==(type const& x, type const& y) { return (x.begin == y.begin) && (x.end == y.end); }
-
-    friend constexpr ALWAYS_INLINE_HIDDEN
-    bool operator!=(type const& x, type const& y) { return !(x==y); }
 };
 
 
@@ -261,9 +230,6 @@ struct TYPE_DEFAULT_VISIBILITY Range<Iterator, Present, Present>
 
     friend constexpr ALWAYS_INLINE_HIDDEN
     bool operator==(type const& x, type const& y) { return (x.begin == y.begin) && (x.end == y.end) && (x.count == y.count); }
-
-    friend constexpr ALWAYS_INLINE_HIDDEN
-    bool operator!=(type const& x, type const& y) { return !(x==y); }
 };
 
 template<typename Iterator>
@@ -283,10 +249,8 @@ struct TYPE_DEFAULT_VISIBILITY Range<Iterator, NotPresent, Present>
 
     friend constexpr ALWAYS_INLINE_HIDDEN
     bool operator==(type const& x, type const& y) { return (x.begin == y.begin) && (x.count == y.count); }
-
-    friend constexpr ALWAYS_INLINE_HIDDEN
-    bool operator!=(type const& x, type const& y) { return !(x==y); }
 };
+
 
 template<typename T>
 struct TYPE_HIDDEN_VISIBILITY GetPresence : Present {};
@@ -364,17 +328,7 @@ bool operator< (Range<Iterator, End, Count> const& x, Range<Iterator, End, Count
 }
 
 template<typename Iterator, typename End, typename Count>
-constexpr ALWAYS_INLINE_HIDDEN
-bool operator<= (Range<Iterator, End, Count> const& x, Range<Iterator, End, Count> const& y) { return !(y < x); }
-
-template<typename Iterator, typename End, typename Count>
-constexpr ALWAYS_INLINE_HIDDEN
-bool operator> (Range<Iterator, End, Count> const& x, Range<Iterator, End, Count> const& y) { return y < x; }
-
-template<typename Iterator, typename End, typename Count>
-constexpr ALWAYS_INLINE_HIDDEN
-bool operator>= (Range<Iterator, End, Count> const& x, Range<Iterator, End, Count> const& y) { return !(x < y); }
-
+struct GenerateDerivedComparisonOperations<Range<Iterator, End, Count>> : std::true_type {};
 
 
 template<typename Iterator, typename End, typename Count, typename Iterator2>

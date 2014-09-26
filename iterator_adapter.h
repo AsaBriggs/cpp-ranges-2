@@ -60,7 +60,7 @@ ALWAYS_INLINE_HIDDEN
 I forwardByN(I x, DifferenceType<I> n) {
   // n >= 0
   while (n) {
-    ++x, --n;
+    --n, ++x;
   }
   return x;
 }
@@ -70,7 +70,7 @@ ALWAYS_INLINE_HIDDEN
 I backwardByN(I x, DifferenceType<I> n) {
   // n <= 0
   while (n) {
-    --x, ++n;
+    ++n, --x;
   }
   return x;
 }
@@ -85,7 +85,7 @@ I advance(I x, DifferenceType<I> n, std::input_iterator_tag) {
 template<BidirectionalIterator I>
 ALWAYS_INLINE_HIDDEN
 I advance(I x, DifferenceType<I> n, std::bidirectional_iterator_tag) {
-  return n < 0 ? backwardByN(x, n) : forwardByN(x, n);
+  return (n < 0) ? backwardByN(x, n) : ((n > 0) ? forwardByN(x, n) : x);
 }
 
 template<RandomAccessIterator I>
@@ -99,6 +99,12 @@ constexpr ALWAYS_INLINE_HIDDEN
 I advance(I x, DifferenceType<I> n) {
   return advance(x, n, IteratorCategory<I>());
 }
+
+template<InputIterator I>
+constexpr ALWAYS_INLINE_HIDDEN I successor(I x) { return ++x; }
+
+template<BidirectionalIterator I>
+constexpr ALWAYS_INLINE_HIDDEN I predecessor(I x) { return --x; }
 
 
 template<typename Iterator, typename Enable=void>
@@ -250,14 +256,14 @@ struct TYPE_DEFAULT_VISIBILITY iterator_basis {
   reference deref(iterator_basis const& x) { return *x.position; }
 
   friend constexpr ALWAYS_INLINE_HIDDEN
-  iterator_basis successor(iterator_basis x) { return {++x.position}; }
+  iterator_basis successor(iterator_basis const& x) { return {range2::successor(x.position)}; }
 
   friend constexpr ALWAYS_INLINE_HIDDEN
-  iterator_basis predecessor(iterator_basis x) { return {--x.position}; }
+  iterator_basis predecessor(iterator_basis const& x) { return {range2::predecessor(x.position)}; }
 
   // for random access iterator
   friend constexpr ALWAYS_INLINE_HIDDEN
-  iterator_basis offset(iterator_basis x, difference_type i) { return {x.position + i}; }
+  iterator_basis offset(iterator_basis const& x, difference_type i) { return {x.position + i}; }
 
   friend constexpr ALWAYS_INLINE_HIDDEN
   difference_type difference(iterator_basis const& x, iterator_basis const& y) { return std::distance(y.position, x.position); }
@@ -287,17 +293,17 @@ struct TYPE_DEFAULT_VISIBILITY reverse_iterator_basis {
 
   // Take a copy of the iterator to be able to use -- inline
   friend constexpr ALWAYS_INLINE_HIDDEN
-  reference deref(reverse_iterator_basis x) { return *(--x.position); }
+  reference deref(reverse_iterator_basis x) { return *(range2::predecessor(x.position)); }
 
   friend constexpr ALWAYS_INLINE_HIDDEN
-  reverse_iterator_basis successor(reverse_iterator_basis x) { return {--x.position}; }
+  reverse_iterator_basis successor(reverse_iterator_basis const& x) { return {range2::predecessor(x.position)}; }
 
   friend constexpr ALWAYS_INLINE_HIDDEN
-  reverse_iterator_basis predecessor(reverse_iterator_basis x) { return {++x.position}; }
+  reverse_iterator_basis predecessor(reverse_iterator_basis const& x) { return {range2::successor(x.position)}; }
 
   // for random access iterator
   friend constexpr ALWAYS_INLINE_HIDDEN
-    reverse_iterator_basis offset(reverse_iterator_basis x, difference_type i) { return {x.position - i}; }
+  reverse_iterator_basis offset(reverse_iterator_basis const& x, difference_type i) { return {x.position - i}; }
 
   friend constexpr ALWAYS_INLINE_HIDDEN
   difference_type difference(reverse_iterator_basis const& x, reverse_iterator_basis const& y) { return std::distance(x.position, y.position); }
@@ -331,14 +337,14 @@ struct TYPE_DEFAULT_VISIBILITY skip_iterator_basis {
   reference deref(skip_iterator_basis const& x) { return *x.position; }
 
   friend constexpr ALWAYS_INLINE_HIDDEN
-  skip_iterator_basis successor(skip_iterator_basis x) { return {advance(x.position, N)}; }
+  skip_iterator_basis successor(skip_iterator_basis const& x) { return {range2::advance(x.position, N)}; }
 
   friend constexpr ALWAYS_INLINE_HIDDEN
-  skip_iterator_basis predecessor(skip_iterator_basis x) { return {advance(x.position, -N)}; }
+  skip_iterator_basis predecessor(skip_iterator_basis const& x) { return {range2::advance(x.position, -N)}; }
 
   // for random access iterator
   friend constexpr ALWAYS_INLINE_HIDDEN
-  skip_iterator_basis offset(skip_iterator_basis x, difference_type i) { return {x.position + i * N}; }
+  skip_iterator_basis offset(skip_iterator_basis const& x, difference_type i) { return {x.position + i * N}; }
 
   friend constexpr ALWAYS_INLINE_HIDDEN
   difference_type difference(skip_iterator_basis const& x, skip_iterator_basis const& y) { return std::distance(y.position, x.position) / N; }

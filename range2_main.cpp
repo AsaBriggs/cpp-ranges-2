@@ -132,7 +132,7 @@ public:
 
     // Test non-const reference path
     auto tmp = make_range(begin, end, count);
-    CountType<PtrType>& count2 = get_count(tmp);
+    DifferenceType<PtrType>& count2 = get_count(tmp);
     assert(count2 == count);
 
     NotPresent tmp2 = get_count(r00);

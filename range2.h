@@ -87,6 +87,29 @@ constexpr ALWAYS_INLINE_HIDDEN pair<T0, T1> make_pair(T0 m0, T1 m1) {
   return {cmove(m0), cmove(m1)};
 }
 
+template<typename T0, typename T1, typename T2>
+struct TYPE_DEFAULT_VISIBILITY triple
+{
+    typedef triple type;
+    T0 m0;
+    T1 m1;
+    T2 m2;
+
+    friend constexpr ALWAYS_INLINE_HIDDEN
+    bool operator== (type const& x, type const& y) { return (x.m0 == y.m0) && (x.m1 == y.m1) && (x.m2 == y.m2); }
+
+    friend constexpr ALWAYS_INLINE_HIDDEN
+    bool operator< (type const& x, type const& y) { return (x.m0 < y.m0) || (!(y.m0 < x.m0) && ((x.m1 < y.m1) || (!(y.m1 < x.m1) && (x.m2 < y.m2)))); }
+};
+
+template<typename T0, typename T1, typename T2>
+struct GenerateDerivedComparisonOperations<triple<T0, T1, T2>> : std::true_type {};
+
+template<typename T0, typename T1, typename T2>
+constexpr ALWAYS_INLINE_HIDDEN triple<T0, T1, T2> make_triple(T0 m0, T1 m1, T2 m2) {
+  return {cmove(m0), cmove(m1), cmove(m2)};
+}
+
 struct TYPE_DEFAULT_VISIBILITY NotPresent {
     typedef NotPresent type;
 

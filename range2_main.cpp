@@ -50,42 +50,84 @@ public:
   TEST_ASSERT((std::is_same<RangeEffectiveIteratorCategory<Range<std::istream_iterator<char>, Present, Present>>, std::input_iterator_tag>::value));
   TEST_ASSERT((std::is_same<RangeEffectiveIteratorCategory<Range<std::forward_list<char>::iterator, Present, Present>>, std::forward_iterator_tag>::value));
 
-  template<typename T>
-  void testRelationalOperators(T lesser, T greater) {
-    assert(lesser == lesser);
-    assert(!(lesser != lesser));
+  constexpr pair<int, int> pairArray[2] = {make_pair(0,0), make_pair(0,1)};
 
-    assert(greater == greater);
-    assert(!(greater != greater));
+#define RELATIONAL_TESTS(Lookup, Assert)\
+    Assert(Lookup(lesser) == Lookup(lesser));\
+    Assert(!(Lookup(lesser) != Lookup(lesser)));\
+\
+    Assert(Lookup(greater) == Lookup(greater));\
+    Assert(!(Lookup(greater) != Lookup(greater)));\
+\
+    Assert(Lookup(lesser) != Lookup(greater));\
+    Assert(!(Lookup(lesser) == Lookup(greater)));\
+\
+    Assert(!(Lookup(lesser) < Lookup(lesser)));\
+    Assert(Lookup(lesser) <= Lookup(lesser));\
+    Assert(Lookup(lesser) >= Lookup(lesser));\
+    Assert(!(Lookup(lesser) > Lookup(lesser)));\
+\
+    Assert(!(Lookup(greater) < Lookup(greater)));\
+    Assert(Lookup(greater) <= Lookup(greater));\
+    Assert(Lookup(greater) >= Lookup(greater));\
+    Assert(!(Lookup(greater) > Lookup(greater)));\
+\
+    Assert(Lookup(lesser) < Lookup(greater));\
+    Assert(Lookup(lesser) <= Lookup(greater));\
+    Assert(!(Lookup(lesser) > Lookup(greater)));\
+    Assert(!(Lookup(lesser) >= Lookup(greater)));\
+\
+    Assert(!(Lookup(greater) < Lookup(lesser)));\
+    Assert(!(Lookup(greater) <= Lookup(lesser)));\
+    Assert(Lookup(greater) > Lookup(lesser));\
+    Assert(Lookup(greater) >= Lookup(lesser));\
 
-    assert(lesser != greater);
-    assert(!(lesser == greater));
+#define PAIR_ARRAY_LOOKUP(x) pairArray[x]
+#define TEST_ASSERTION TEST_ASSERT
 
-    assert(!(lesser < lesser));
-    assert(lesser <= lesser);
-    assert(lesser >= lesser);
-    assert(!(lesser > lesser));
-
-    assert(!(greater < greater));
-    assert(greater <= greater);
-    assert(greater >= greater);
-    assert(!(greater > greater));
-
-    assert(lesser < greater);
-    assert(lesser <= greater);
-    assert(!(lesser > greater));
-    assert(!(lesser >= greater));
-
-    assert(!(greater < lesser));
-    assert(!(greater <= lesser));
-    assert(greater > lesser);
-    assert(greater >= lesser);
+  template<int lesser, int greater>
+  constexpr bool testPairRelations() {
+    RELATIONAL_TESTS(PAIR_ARRAY_LOOKUP, TEST_ASSERTION)
+    return true;
   }
 
+#undef PAIR_ARRAY_LOOKUP
+#define RUNTIME_ASSERTION assert
+#define NO_LOOKUP(x) x
+
   void testPair() {
-    constexpr auto x = make_pair(1, 2);
-    constexpr auto y = make_pair(2, 3);
-    testRelationalOperators(x, y);
+    testPairRelations<0, 1>();
+  }
+
+  template<typename T>
+  void testRelationalOperators(T const& lesser, T const& greater) {
+    RELATIONAL_TESTS(NO_LOOKUP, RUNTIME_ASSERTION)
+  }
+
+#undef NO_LOOKUP
+#undef RUNTIME_ASSERTION
+
+  constexpr triple<int, int, int> tripleArray[4] = {make_triple(0,0,0), make_triple(1,0,0), make_triple(0,1,0), make_triple(0,0,1)};
+
+#define TRIPLE_ARRAY_LOOKUP(x) tripleArray[x]
+
+  template<int lesser, int greater>
+  constexpr bool testTripleRelations() {
+    RELATIONAL_TESTS(TRIPLE_ARRAY_LOOKUP, TEST_ASSERTION)
+    return true;
+  }
+
+#undef TRIPLE_ARRAY_LOOKUP
+#undef TEST_ASSERTION
+#undef RELATIONAL_TESTS
+
+  void testTriple() {
+    testTripleRelations<0,1>();
+    testTripleRelations<0,2>();
+    testTripleRelations<0,3>();
+    testTripleRelations<2,1>();
+    testTripleRelations<3,2>();
+    testTripleRelations<3,2>();
   }
 
   void testPresentNotPresent() {
@@ -1094,6 +1136,7 @@ using namespace range2;
 
 int main() {
   testPair();
+  testTriple();
   testPresentNotPresent();
 
   testGetBegin();

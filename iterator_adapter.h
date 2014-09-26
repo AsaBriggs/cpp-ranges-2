@@ -15,8 +15,16 @@
 #include "compiler_specifics.h"
 #endif
 
-
 namespace range2 {
+
+//
+// Note that the code for iterator adaption was taken from
+// https://github.com/psoberoi/stepanov-conversations-course
+// which contains the source code from the Programming conversations course led by
+// Alex Stepanov & Param Oberoi.
+// See also http://www.youtube.com/user/A9Videos
+// The code itself was adapted by taking out state modification functions into constexpr
+// friend functions where possible.
 
 #define InputIterator typename
 #define IteratorBasis typename
@@ -39,38 +47,50 @@ using Pointer = typename std::iterator_traits<I>::pointer;
 template <InputIterator I>
 using Reference = typename std::iterator_traits<I>::reference;
 
+
+// Machinery to enable constexpr advance where possible
+// Note that in C++14 std::advance is constexpr anyhow.
+//
 template<InputIterator I>
-constexpr ALWAYS_INLINE_HIDDEN I forwardByN(I x, DifferenceType<I> n) {
+constexpr ALWAYS_INLINE_HIDDEN
+I forwardByN(I x, DifferenceType<I> n) {
   // n >= 0
   return n ? forwardByN(++x, n-1) : x;
 }
 
 template<BidirectionalIterator I>
-constexpr ALWAYS_INLINE_HIDDEN I backwardByN(I x, DifferenceType<I> n) {
+constexpr ALWAYS_INLINE_HIDDEN
+I backwardByN(I x, DifferenceType<I> n) {
   // n <= 0
   return n ? backwardByN(--x, n+1) : x;
 }
 
 template<InputIterator I>
-constexpr I advance(I x, DifferenceType<I> n, std::input_iterator_tag) {
+constexpr ALWAYS_INLINE_HIDDEN
+I advance(I x, DifferenceType<I> n, std::input_iterator_tag) {
   // n >= 0
   return forwardByN(x, n);
 }
 
 template<BidirectionalIterator I>
-constexpr I advance(I x, DifferenceType<I> n, std::bidirectional_iterator_tag) {
+constexpr ALWAYS_INLINE_HIDDEN
+I advance(I x, DifferenceType<I> n, std::bidirectional_iterator_tag) {
   return n < 0 ? backwardByN(x, n) : forwardByN(x, n);
 }
 
 template<RandomAccessIterator I>
-constexpr I advance(I x, DifferenceType<I> n, std::random_access_iterator_tag) {
+constexpr ALWAYS_INLINE_HIDDEN
+I advance(I x, DifferenceType<I> n, std::random_access_iterator_tag) {
   return x + n;
 }
 
 template<InputIterator I>
-constexpr I advance(I x, DifferenceType<I> n) {
+constexpr ALWAYS_INLINE_HIDDEN
+I advance(I x, DifferenceType<I> n) {
   return advance(x, n, IteratorCategory<I>());
 }
+
+
 
 template<typename Iterator, typename Enable=void>
 struct TYPE_HIDDEN_VISIBILITY SpecialisedSink : std::false_type {};
@@ -112,11 +132,12 @@ struct TYPE_DEFAULT_VISIBILITY iterator {
   friend constexpr ALWAYS_INLINE_HIDDEN
   state_type state(iterator const& x) { return state(x.basis); }
 
-  constexpr ALWAYS_INLINE_HIDDEN
-  reference operator*() const { return deref(basis); }
+  friend constexpr ALWAYS_INLINE_HIDDEN
+  reference operator*(iterator const& x) { return deref(x.basis); }
 
+  // Must be a non-static member function
   constexpr ALWAYS_INLINE_HIDDEN
-  pointer operator->() const { return &(deref(basis)); }
+  pointer operator->() const { return &**this; }
 
   friend constexpr ALWAYS_INLINE_HIDDEN
   reference deref(iterator const& x) { return *x; }
@@ -124,16 +145,16 @@ struct TYPE_DEFAULT_VISIBILITY iterator {
   friend ALWAYS_INLINE_HIDDEN
   iterator successor(iterator const& x) { return {successor(x.basis)}; }
 
-  ALWAYS_INLINE_HIDDEN
-  iterator& operator++() {
-    basis = successor(basis);
-    return *this;
+  friend ALWAYS_INLINE_HIDDEN
+  iterator& operator++(iterator& x) {
+    x.basis = successor(x.basis);
+    return x;
   }
 
-  ALWAYS_INLINE_HIDDEN
-  iterator operator++(int) {
-    iterator tmp = *this;
-    ++*this;
+  friend ALWAYS_INLINE_HIDDEN
+  iterator operator++(iterator& x, int) {
+    iterator tmp = x;
+    ++x;
     return tmp;
   }
 
@@ -147,33 +168,33 @@ struct TYPE_DEFAULT_VISIBILITY iterator {
   friend constexpr ALWAYS_INLINE_HIDDEN
   iterator predecessor(iterator const& x) { return {predecessor(x.basis)}; }
 
-  ALWAYS_INLINE_HIDDEN
-  iterator& operator--() {
-    basis = predecessor(basis);
-    return *this;
+  friend ALWAYS_INLINE_HIDDEN
+  iterator& operator--(iterator& x) {
+    x.basis = predecessor(x.basis);
+    return x;
   }
 
-  ALWAYS_INLINE_HIDDEN
-  iterator operator--(int) {
-    iterator tmp = *this;
-    --*this;
+  friend ALWAYS_INLINE_HIDDEN
+  iterator operator--(iterator& x, int) {
+    iterator tmp = x;
+    --x;
     return tmp;
   }
 
   // for random access iterator
 
-  ALWAYS_INLINE_HIDDEN
-  iterator& operator+=(difference_type i) {
-    basis = offset(basis, i);
-    return *this;
+  friend ALWAYS_INLINE_HIDDEN
+  iterator& operator+=(iterator& x, difference_type i) {
+    x.basis = offset(x.basis, i);
+    return x;
   }
 
-  ALWAYS_INLINE_HIDDEN
-  iterator& operator-=(difference_type i) {
-    *this += -i;
-    return *this;
+  friend ALWAYS_INLINE_HIDDEN
+  iterator& operator-=(iterator& x, difference_type i) {
+    return x += -i;
   }
 
+  // Must be a non-static member function
   ALWAYS_INLINE_HIDDEN
   reference operator[](difference_type i) const { return *(*this + i); }
 
@@ -244,6 +265,7 @@ struct TYPE_DEFAULT_VISIBILITY iterator_basis {
   state_type state(iterator_basis const& x) { return x.position; }
 };
 
+
 template<InputIterator I>
 struct TYPE_HIDDEN_VISIBILITY SpecialisedSink<iterator_basis<I>> : std::true_type {};
 
@@ -252,6 +274,10 @@ ALWAYS_INLINE_HIDDEN auto sink(iterator_basis<I> const& x, T&&... y) -> decltype
   return sink(state(x), std::forward<T>(y)...);
 }
 
+template<InputIterator I>
+constexpr ALWAYS_INLINE_HIDDEN iterator<iterator_basis<I>> make_iterator(I x) {
+  return {{x}};
+}
 
 template <BidirectionalIterator I>
 struct TYPE_DEFAULT_VISIBILITY reverse_iterator_basis {
@@ -284,6 +310,7 @@ struct TYPE_DEFAULT_VISIBILITY reverse_iterator_basis {
   state_type state(reverse_iterator_basis const& x) { return x.position; }
 };
 
+
 template<BidirectionalIterator I>
 struct TYPE_HIDDEN_VISIBILITY SpecialisedSink<reverse_iterator_basis<I>> : std::true_type {};
 
@@ -293,18 +320,6 @@ ALWAYS_INLINE_HIDDEN auto sink(reverse_iterator_basis<I> const& x, T&&... y) -> 
   return sink(state(successor(x)), std::forward<T>(y)...);
 }
 
-template<typename I>
-struct TYPE_HIDDEN_VISIBILITY reverse_iterator_impl {
-  typedef iterator<reverse_iterator_basis<I>> type;
-};
-
-template<typename I>
-struct TYPE_HIDDEN_VISIBILITY reverse_iterator_impl<iterator<reverse_iterator_basis<I>>>{
-  typedef iterator<iterator_basis<I>> type;
-};
-
-template<BidirectionalIterator I>
-using reverse_iterator = typename reverse_iterator_impl<I>::type;
 
 template <InputIterator I, DifferenceType<I> N>
 struct TYPE_DEFAULT_VISIBILITY skip_iterator_basis {
@@ -316,25 +331,26 @@ struct TYPE_DEFAULT_VISIBILITY skip_iterator_basis {
   typedef DifferenceType<I> difference_type;
   typedef IteratorCategory<I> iterator_category;
 
-  friend constexpr ALWAYS_INLINE_HIDDEN
+  friend  ALWAYS_INLINE_HIDDEN
   reference deref(skip_iterator_basis const& x) { return *x.position; }
 
   friend constexpr ALWAYS_INLINE_HIDDEN
-  skip_iterator_basis successor(skip_iterator_basis x) { return advance(x.position, N); }
+  skip_iterator_basis successor(skip_iterator_basis x) { return {advance(x.position, N)}; }
 
   friend constexpr ALWAYS_INLINE_HIDDEN
-  skip_iterator_basis predecessor(skip_iterator_basis x) { return advance(x.position, -N); }
+  skip_iterator_basis predecessor(skip_iterator_basis x) { return {advance(x.position, -N)}; }
 
   // for random access iterator
   friend constexpr ALWAYS_INLINE_HIDDEN
   skip_iterator_basis offset(skip_iterator_basis x, difference_type i) { return {x.position += i * N}; }
 
   friend constexpr ALWAYS_INLINE_HIDDEN
-  difference_type difference(skip_iterator_basis const& x, skip_iterator_basis const& y) { return std::distance(x.position, y.position) / N; }
+  difference_type difference(skip_iterator_basis const& x, skip_iterator_basis const& y) { return std::distance(y.position, x.position) / N; }
 
   friend constexpr ALWAYS_INLINE_HIDDEN
   state_type state(skip_iterator_basis const& x) { return x.position; }
 };
+
 
 template<InputIterator I, DifferenceType<I> N>
 struct TYPE_HIDDEN_VISIBILITY SpecialisedSink<skip_iterator_basis<I, N>> : std::true_type {};
@@ -344,22 +360,67 @@ ALWAYS_INLINE_HIDDEN auto sink(skip_iterator_basis<I, N> const& x, T&&... y) -> 
   return sink(state(x), std::forward<T>(y)...);
 }
 
+template<BidirectionalIterator I>
+struct TYPE_HIDDEN_VISIBILITY reverse_iterator_impl {
+  typedef iterator<reverse_iterator_basis<I>> type;
+
+  static constexpr ALWAYS_INLINE_HIDDEN type apply(I x) {
+    return {{x}};
+  }
+};
+
+template<BidirectionalIterator I>
+struct TYPE_HIDDEN_VISIBILITY reverse_iterator_impl<iterator<reverse_iterator_basis<I>>>{
+  typedef iterator<iterator_basis<I>> type;
+
+  static constexpr ALWAYS_INLINE_HIDDEN type apply(iterator<reverse_iterator_basis<I>> x) {
+    return {{state(x)}};
+  }
+};
+
+template<BidirectionalIterator I>
+using reverse_iterator = typename reverse_iterator_impl<I>::type;
+
+template<BidirectionalIterator I>
+constexpr ALWAYS_INLINE_HIDDEN reverse_iterator<I> make_reverse_iterator(I x) {
+  return reverse_iterator_impl<I>::apply(x);
+}
+
 
 template<InputIterator I, DifferenceType<I> N>
-struct TYPE_HIDDEN_VISIBILITY SkipIterator_Impl {
+struct TYPE_HIDDEN_VISIBILITY skip_iterator_impl {
   typedef iterator<skip_iterator_basis<I, N>> type;
+
+  static constexpr ALWAYS_INLINE_HIDDEN type apply(I x) {
+    return {{x}};
+  }
 };
 
 template<InputIterator I, DifferenceType<I> N, DifferenceType<I> M>
-struct TYPE_HIDDEN_VISIBILITY SkipIterator_Impl<iterator<skip_iterator_basis<I, M>>, N> {
+struct TYPE_HIDDEN_VISIBILITY skip_iterator_impl<iterator<skip_iterator_basis<I, M>>, N> {
   typedef iterator<skip_iterator_basis<I, N * M>> type;
+
+  static constexpr ALWAYS_INLINE_HIDDEN type apply(iterator<skip_iterator_basis<I, M>> x) {
+    return {{x}};
+  }
 };
 
+template<BidirectionalIterator I, DifferenceType<I> N>
+struct TYPE_HIDDEN_VISIBILITY skip_iterator_impl<iterator<reverse_iterator_basis<I>>, N>{
+  typedef iterator<reverse_iterator<typename skip_iterator_impl<I, N>::type>> type;
+
+  static constexpr ALWAYS_INLINE_HIDDEN type apply(iterator<reverse_iterator_basis<I>> x) {
+    return {{{skip_iterator_impl<I, N>::apply(state(x))}}};
+  }
+};
 
 template<InputIterator I, DifferenceType<I> N>
-using SkipIterator = typename SkipIterator_Impl<I, N>::type;
+using skip_iterator = typename skip_iterator_impl<I, N>::type;
 
-// TODO calculus of interacting skip & reverse ...
+template<long long N, InputIterator I>
+constexpr ALWAYS_INLINE_HIDDEN skip_iterator<I, N> make_skip_iterator(I x) {
+  return skip_iterator_impl<I, N>::apply(x);
+}
 
 } // namespace range2
 

@@ -28,10 +28,11 @@ public:
 
   typedef int const* PtrType;
 
-  constexpr int arr[20] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19};
-  constexpr PtrType begin = &arr[0];
-  constexpr PtrType end = &arr[20];
   constexpr int count = 20;
+  constexpr int arr[count] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19};
+  constexpr PtrType begin = &arr[0];
+  constexpr PtrType end = &arr[0] + count;
+
   const std::forward_list<int> slist(begin, end);
 
   // Test Range construction
@@ -169,7 +170,7 @@ public:
     testAddConstantTimeEndImpl(r11);
 
     testAddConstantTimeEndNotPossibleImpl(r00);
-    testAddConstantTimeEndNotPossibleImpl(makeRange(slist.begin(), NotPresent{}, 20));
+    testAddConstantTimeEndNotPossibleImpl(make_range(slist.begin(), NotPresent{}, count));
   }
 
   template<typename T>
@@ -195,7 +196,7 @@ public:
     testAddConstantTimeCountImpl(r11);
 
     testAddConstantTimeCountNotPossibleImpl(r00);
-    testAddConstantTimeCountNotPossibleImpl(makeRange(slist.begin(), slist.end(), NotPresent{}));
+    testAddConstantTimeCountNotPossibleImpl(make_range(slist.begin(), slist.end(), NotPresent{}));
   }
 
   template<typename T>
@@ -219,9 +220,9 @@ public:
     testAddLinearTimeEndImpl(r11);
 
     {
-      auto tmp = addLinearTimeEnd(makeRange(slist.begin(), NotPresent{}, 20));
+      auto tmp = addLinearTimeEnd(make_range(slist.begin(), NotPresent{}, count));
       assert(slist.end() == getEnd(tmp));
-      assert(20 == getCount(tmp));
+      assert(count == getCount(tmp));
     }
   }
 
@@ -244,8 +245,8 @@ public:
     testAddLinearTimeCountImpl(r11);
 
     {
-      auto tmp = addLinearTimeCount(makeRange(slist.begin(), slist.end(), NotPresent{}));
-      assert(20 == getCount(tmp));
+      auto tmp = addLinearTimeCount(make_range(slist.begin(), slist.end(), NotPresent{}));
+      assert(count == getCount(tmp));
       assert(slist.end() == getEnd(tmp));
     }
   }
@@ -257,18 +258,18 @@ public:
     assert(!isEmpty(r11));
     
     {
-      auto tmp = makeRange(begin, begin, NotPresent{});
+      auto tmp = make_range(begin, begin, NotPresent{});
       assert(isEmpty(tmp));
     }
 
     {
-      auto tmp = makeRange(begin, NotPresent{}, 0);
+      auto tmp = make_range(begin, NotPresent{}, 0);
       assert(isEmpty(tmp));
     }
 
     {
       // Demonstrates that count is used in preference to begin/end pair
-      auto tmp = makeRange(begin, end, 0);
+      auto tmp = make_range(begin, end, 0);
       assert(isEmpty(tmp));
     }
   }
@@ -281,13 +282,13 @@ public:
       ++i;
       x = next(x);
     }
-    assert(20 == i);
+    assert(count == i);
   }
 
   void testNext() {
-    testBoundedRange(makeRange(begin, end, NotPresent{}));
-    testBoundedRange(makeRange(begin, NotPresent{}, 20));
-    testBoundedRange(makeRange(begin, end, 20));
+    testBoundedRange(make_range(begin, end, NotPresent{}));
+    testBoundedRange(make_range(begin, NotPresent{}, count));
+    testBoundedRange(make_range(begin, end, count));
   }
 
   template<typename R0, typename R1, typename R2>
@@ -511,7 +512,7 @@ public:
   template<typename R>
   void testJoinImpl(R const& rng) {
     {
-      auto r = makeRange(begin + 9, NotPresent{}, NotPresent{});
+      auto r = make_range(begin + 9, NotPresent{}, NotPresent{});
       auto tmp = join(rng, r);
       testJoinBoundedness(rng, r, tmp);
       assert(begin == getBegin(tmp));
@@ -520,7 +521,7 @@ public:
     }
 
     {
-      auto r = makeRange(begin + 9, end, NotPresent{});
+      auto r = make_range(begin + 9, end, NotPresent{});
       auto tmp = join(rng, r);
       testJoinBoundedness(rng, r, tmp);
       assert(begin == getBegin(tmp));
@@ -530,7 +531,7 @@ public:
     }
 
     {
-      auto r = makeRange(begin + 9, NotPresent{}, 11);
+      auto r = make_range(begin + 9, NotPresent{}, 11);
       auto tmp = join(rng, r);
       testJoinBoundedness(rng, r, tmp);
       assert(begin == getBegin(tmp));
@@ -538,7 +539,7 @@ public:
     }
 
     {
-      auto r = makeRange(begin + 9, end, 11);
+      auto r = make_range(begin + 9, end, 11);
       auto tmp = join(rng, r);
       testJoinBoundedness(rng, r, tmp);
       assert(begin == getBegin(tmp));
@@ -555,7 +556,7 @@ public:
 
 
   void testIterator() {
-    iterator<iterator_basis<int const*>> tmp = {{begin}};
+    auto tmp = make_iterator(begin);
     assert(0 == *tmp);
     assert(tmp == tmp);
     assert(!(tmp != tmp));
@@ -628,11 +629,181 @@ public:
 
     //Test sink
     int arr[] = {0, 1, 2};
-    iterator<iterator_basis<int*>> tmp6 = {{&arr[0]}};
+    auto tmp6 = make_iterator(&arr[0]);
     sink(tmp6 + 2, 55);
     assert(55 == tmp6[2]);
 
     // Test operator ->
+    std::string arr2[] = {"aaa"};
+    auto tmp7 = make_iterator(&arr2[0]);
+    assert(!tmp7->empty());
+  }
+
+  void testReversedIterator() {
+    auto Start = make_reverse_iterator(end);
+    auto End = make_reverse_iterator(begin);
+
+    // check difference
+    assert(count == End - Start);
+
+    //check equality and comparison
+    assert(Start == Start);
+    assert(End == End);
+    assert(Start < End);
+
+    //Check successor and deref
+    int expected = 19;
+    while(Start != End) {
+      assert(expected == *Start);
+      --expected;
+      ++Start;
+    }
+    assert(-1 == expected);
+
+    // check predecessor
+    expected = 0;
+    Start = make_reverse_iterator(end);
+    while(Start != End) {
+      --End;
+      assert(expected == *End);
+      ++expected;
+    }
+    assert(count == expected);
+
+    // Check state
+    End = make_reverse_iterator(begin);
+    assert(begin == state(End));
+    assert(end == state(Start));
+
+    // Check offset
+    assert(End == Start + count);
+
+    int arr[] = {0, 1, 2};
+    // point to the end of the array
+    auto tmp = make_reverse_iterator(&arr[0] + 3);
+    sink(tmp, 5);
+    assert(5 == arr[2]);
+  }
+
+  template<int N>
+  void testSkipIteratorImpl() {
+    auto Start = make_skip_iterator<N>(begin);
+    auto End = make_skip_iterator<N>(end);
+    assert(begin == state(Start));
+    assert(end == state(End));
+
+    // Test successor
+    int expected = 0;
+    while (Start != End) {
+      assert(expected == *Start);
+      expected += N;
+      ++Start;
+    }
+    assert(count == expected);
+
+    // Test predecessor
+    Start = make_skip_iterator<N>(begin);
+    expected = count - N;
+    while(Start != End) {
+      --End;
+      assert(expected == *End);
+      expected -= N;
+    }
+    assert(-N == expected);
+
+    End = make_skip_iterator<N>(end);
+    assert(Start + count/N == End);
+    assert(End - count/N == Start);
+    assert(End - Start == count/N);
+  }
+
+  void testSkipIterator() {
+    // test the factors of 20
+    testSkipIteratorImpl<1>();
+    testSkipIteratorImpl<2>();
+    testSkipIteratorImpl<4>();
+    testSkipIteratorImpl<5>();
+    testSkipIteratorImpl<10>();
+    testSkipIteratorImpl<20>();
+  }
+
+  template<typename T>
+  void testReverseImpl(T x) {
+    auto range = reverse(x);
+    int expected = 19;
+    while (!isEmpty(range)) {
+      assert(expected == deref(getBegin(range)));
+      --expected;
+      range = next(range);
+    }
+    assert(-1 == expected);
+  }
+
+  void testReverse() {
+    testReverseImpl(r01);
+    testReverseImpl(r10);
+    testReverseImpl(r11);
+  }
+
+  template<long long N, typename T>
+  void testSkipImpl2(T x) {
+    auto y = skip<N>(x);
+
+    // Test successor
+    int expected = 0;
+    while(!isEmpty(y)) {
+      assert(expected == *getBegin(y));
+      expected += N;
+      y = next(y);
+    }
+    assert(count == expected);
+  }
+
+  template<long long N>
+  void testSkipImpl() {
+    testSkipImpl2<N>(r01);
+    testSkipImpl2<N>(r11);
+  }
+
+  void testSkip() {
+    testSkipImpl<1>();
+    testSkipImpl<2>();
+    testSkipImpl<4>();
+    testSkipImpl<5>();
+    testSkipImpl<10>();
+    testSkipImpl<20>();
+  }
+
+  template<int N, typename T>
+  void testReverseSkipImpl2(T x) {
+    int expected = count - N;
+    while (!isEmpty(x)) {
+      assert(expected == *getBegin(x));
+      x = next(x);
+      expected -= N;
+    }
+    assert(-N == expected);
+  }
+
+  template<int N, typename T>
+  void testReverseSkipImpl1(T x) {
+    testReverseSkipImpl2<N>(reverse(skip<N>(x)));
+    testReverseSkipImpl2<N>(skip<N>(reverse(x)));
+  }
+
+  template<typename T>
+  void testReverseSkipImpl(T x) {
+    testReverseSkipImpl1<1>(x);
+    testReverseSkipImpl1<2>(x);
+    testReverseSkipImpl1<4>(x);
+    testReverseSkipImpl1<5>(x);
+    testReverseSkipImpl1<10>(x);
+    testReverseSkipImpl1<20>(x);
+  }
+
+  void testReverseSkip() {
+    testReverseSkipImpl(r01);
+    testReverseSkipImpl(r11);
   }
 
   typedef unsigned long long SumType;
@@ -648,7 +819,7 @@ public:
   }
 
   template<typename T>
-  SumType sumOver2(T x) {
+  SumType unrolledSumOver(T x) {
     SumType tmp0 = 0;
     SumType tmp1 = 0;
     SumType tmp2 = 0;
@@ -677,7 +848,7 @@ public:
   constexpr int loopTimes = 100;
 
   template<typename T>
-  void performanceTest2(T x) {
+  void performanceTest2(T x, char const* const description) {
     SumType sum = 0U;
     timer t;
     t.start();
@@ -685,57 +856,58 @@ public:
       sum += sumOver(x);
     }
     auto time = t.stop();
-    std::cout << sum << ' ' << time << std::endl;
+    std::cout << sum << ' ' << time << ' ' << description << std::endl;
   }
 
   template<typename T>
-  void performanceTest3(T x) {
+  void performanceTestUnrolled(T x, char const* const description) {
     SumType sum = 0U;
     timer t;
     t.start();
     for (int i=0; i < loopTimes; ++i) {
-      sum += sumOver2(x);
+      sum += unrolledSumOver(x);
     }
     auto time = t.stop();
-    std::cout << sum << ' ' << time << std::endl;
+    std::cout << sum << ' ' << time << " Unrolled " << description << std::endl;
   }
 
-  template<typename I>
-  iterator<iterator_basis<I>> make_iterator(I x) {
-    return {{x}};
+  template<typename Container>
+  void performanceTestRawLoop(Container const& c) {
+    timer t;
+    t.start();
+    SumType s =0U;
+    for(int i=0; i < loopTimes; ++i) {
+      s = std::accumulate(c.begin(), c.end(), s);
+    }
+    auto tmp = t.stop();
+    std::cout << s << ' ' << tmp << " Raw loop" << std::endl;
   }
 
   void testPerformance() {
     std::vector<SumType> v(1000000);
     std::iota(v.begin(), v.end(), 5);
-    auto r0 = makeRange(v.begin(), v.end(), NotPresent{});
-    auto r1 = makeRange(v.begin(), NotPresent{}, v.size());
-    auto r2 = makeRange(v.begin(), v.end(), v.size());
+    auto r0 = make_range(v.begin(), v.end(), NotPresent{});
+    auto r1 = make_range(v.begin(), NotPresent{}, v.size());
+    auto r2 = make_range(v.begin(), v.end(), v.size());
 
-    auto r3 = makeRange(make_iterator(v.begin()), make_iterator(v.end()), NotPresent{});
-    auto r4 = makeRange(make_iterator(v.begin()), NotPresent{}, v.size());
-    auto r5 = makeRange(make_iterator(v.begin()), make_iterator(v.end()), v.size());
+    auto r3 = make_range(make_iterator(v.begin()), make_iterator(v.end()), NotPresent{});
+    auto r4 = make_range(make_iterator(v.begin()), NotPresent{}, v.size());
+    auto r5 = make_range(make_iterator(v.begin()), make_iterator(v.end()), v.size());
 
     sumOver(r0);
-    performanceTest2(r0);
-    performanceTest2(r1);
-    performanceTest2(r2);
-    performanceTest2(r3);
-    performanceTest2(r4);
-    performanceTest2(r5);
+    performanceTest2(r0, "Bounded Range");
+    performanceTest2(r1, "Counted Range");
+    performanceTest2(r2, "Bounded and Counted Range");
+    performanceTest2(r3, "Bounded wrapped Range");
+    performanceTest2(r4, "Counted wrapped Range");
+    performanceTest2(r5, "Bounded and Counted wrapped Range");
 
-    performanceTest3(r1);
-    performanceTest3(r2);
-    performanceTest3(r4);
-    performanceTest3(r5);
-    timer t;
-    t.start();
-    SumType s =0U;
-    for(int i=0; i < loopTimes; ++i) {
-      s += std::accumulate(v.begin(), v.end(), 0);
-    }
-    auto tmp = t.stop();
-    std::cout << s << ' ' << tmp << std::endl;
+    performanceTestUnrolled(r1, "Counted Range");
+    performanceTestUnrolled(r2, "Bounded and Counted Range");
+    performanceTestUnrolled(r4, "Counted wrapped Range");
+    performanceTestUnrolled(r5, "Bounded and Counted wrapped Range");
+
+    performanceTestRawLoop(v);
   }
 } // unnamed namespace
 } // namespace range2
@@ -771,15 +943,10 @@ int main() {
   testPerformance();
 
   testIterator();
+  testReversedIterator();
+  testSkipIterator();
 
-  reverse_iterator<int const*> a = {{begin}};
-  reverse_iterator<int const*> b = {{end}};
-  auto tmp = makeRange(b, a, NotPresent{});
-  int expected = 19;
-  while (!isEmpty(tmp)) {
-    assert(expected == *getBegin(tmp));
-    --expected;
-    tmp = next(tmp);
-  }
-  assert(20 == std::distance(b, a));
+  testReverse();
+  testSkip();
+  testReverseSkip();
 }

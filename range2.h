@@ -273,7 +273,7 @@ struct TYPE_HIDDEN_VISIBILITY GetPresence<NotPresent> : NotPresent {};
 
 template<typename Iterator, typename End, typename Count>
 constexpr ALWAYS_INLINE_HIDDEN Range<Iterator, typename GetPresence<End>::type, typename GetPresence<Count>::type>
-makeRange(Iterator begin, End end, Count count) {
+make_range(Iterator begin, End end, Count count) {
   static_assert(std::is_same<End, NotPresent>::value || std::is_convertible<End, Iterator>::value, "End Iterator must be NotPresent or of the same type as begin");
   static_assert(std::is_same<Count, NotPresent>::value || std::is_convertible<CountType<Iterator>, Count>::value, "Count must NotPresent or of type CountType<Iterator>");
 
@@ -338,7 +338,6 @@ addBegin(Range<Iterator, End, Count> const& x, Iterator2 begin) {
   static_assert(std::is_convertible<Iterator2, Iterator>::value, "Begin iterator must be convertible to Range's Iterator");
   return Range<Iterator, End, Count>::make(begin, getEnd(x), getCount(x));
 }
-
 
 template<typename Iterator, typename End, typename Count, typename Iterator2>
 constexpr ALWAYS_INLINE_HIDDEN Range<Iterator, Present, Count>
@@ -423,11 +422,10 @@ addConstantTimeEnd(Range<Iterator, Present, Count> const& x) {
 
 // Can add in constant time
 template<typename Iterator, typename Count>
-typename std::enable_if<ConstantTimeEnd<Range<Iterator, NotPresent, Count>>::value, Range<Iterator, Present, Count>>::type
+constexpr typename std::enable_if<ConstantTimeEnd<Range<Iterator, NotPresent, Count>>::value, Range<Iterator, Present, Count>>::type
 addConstantTimeEnd(Range<Iterator, NotPresent, Count> const& x) {
-  auto tmp = x.begin;
-  std::advance(tmp, x.count);
-  return addEnd(x, cmove(tmp));
+  // Advance for randon access iterators is equivalent to pointer addition.
+  return make_range(getBegin(x), advance(getBegin(x), getCount(x)), getCount(x));
 }
 
 // Can't add in constant time
@@ -514,7 +512,7 @@ addConstantTimeCount(Range<Iterator, End, Present> const& x) {
 template<typename Iterator, typename End>
 constexpr ALWAYS_INLINE_HIDDEN typename std::enable_if<ConstantTimeCount<Range<Iterator, End, NotPresent>>::value, Range<Iterator, End, Present>>::type
 addConstantTimeCount(Range<Iterator, End, NotPresent> const& x) {
-  return addCount(x, std::distance(x.begin, x.end));
+  return make_range(getBegin(x), getEnd(x), std::distance(getBegin(x), getEnd(x)));
 }
 
 // Can't add in constant time
@@ -545,7 +543,7 @@ addLinearTimeCount(Range<Iterator, End, NotPresent> const& x) {
     tmp = next(tmp);
     ++count;
   }
-  return addCount(addEnd(cmove(x), getBegin(tmp)), cmove(count));
+  return make_range(getBegin(x), getEnd(x), count);
 }
 
 struct SplitAtImpl { typedef SplitAtImpl type; };
@@ -559,8 +557,8 @@ struct TYPE_HIDDEN_VISIBILITY SplitImpl<Range<Iterator, End, Count>, NotPresent,
 
 template<typename Iterator, typename End, typename Middle>
 struct TYPE_HIDDEN_VISIBILITY SplitImpl<Range<Iterator, End, NotPresent>, Middle, NotPresent, typename std::enable_if<!std::is_same<NotPresent, Middle>::value, void>::type> {
-  static ALWAYS_INLINE_HIDDEN auto apply(Range<Iterator, End, NotPresent> const& x, Middle middle, NotPresent) -> decltype( make_pair(addEnd(x, middle), addBegin(x, middle)) ) {
-    return make_pair(addEnd(x, middle), addBegin(x, middle));
+  static ALWAYS_INLINE_HIDDEN auto apply(Range<Iterator, End, NotPresent> const& x, Middle middle, NotPresent) -> decltype( make_pair(make_range(getBegin(x), middle, NotPresent{}), make_range(middle, getEnd(x), NotPresent{})) ) {
+    return make_pair(make_range(getBegin(x), middle, NotPresent{}), make_range(middle, getEnd(x), NotPresent{}));
   }
 };
 
@@ -569,10 +567,10 @@ struct TYPE_HIDDEN_VISIBILITY Complexity<SplitAtImpl, Range<Iterator, End, NotPr
 
 template<typename Iterator, typename Middle>
 struct TYPE_HIDDEN_VISIBILITY SplitImpl<Range<Iterator, NotPresent, Present>, Middle, NotPresent, typename std::enable_if<!std::is_same<NotPresent, Middle>::value, void>::type> {
-  static ALWAYS_INLINE_HIDDEN auto apply(Range<Iterator, NotPresent, Present> const& x, Middle middle, NotPresent) -> decltype( make_pair(addEnd(x, middle), addBegin(x, middle)) ) {
+  static ALWAYS_INLINE_HIDDEN auto apply(Range<Iterator, NotPresent, Present> const& x, Middle middle, NotPresent) -> decltype( make_pair(make_range(getBegin(x), middle, CountType<Iterator>()), make_range(middle, NotPresent{}, CountType<Iterator>()))) {
     CountType<Iterator> diff = std::distance(getBegin(x), middle);
     CountType<Iterator> c = getCount(x) - diff;
-    return make_pair(addEnd(addCount(x, diff), middle), addBegin(addCount(x, c), middle));
+    return make_pair(make_range(getBegin(x), middle, diff), make_range(middle, NotPresent{}, c));
   }
 };
 
@@ -582,9 +580,9 @@ struct TYPE_HIDDEN_VISIBILITY Complexity<SplitAtImpl, Range<Iterator, NotPresent
 
 template<typename Iterator, typename Middle>
 struct TYPE_HIDDEN_VISIBILITY SplitImpl<Range<Iterator, Present, Present>, Middle, NotPresent, typename std::enable_if<!std::is_same<NotPresent, Middle>::value, void>::type> {
-  static ALWAYS_INLINE_HIDDEN auto apply(Range<Iterator, Present, Present> const& x, Middle middle, NotPresent) -> decltype( make_pair(addEnd(removeCount(x), middle), addBegin(removeCount(x), middle)) ) {
+  static ALWAYS_INLINE_HIDDEN auto apply(Range<Iterator, Present, Present> const& x, Middle middle, NotPresent) -> decltype( make_pair(make_range(getBegin(x), middle, NotPresent{}), make_range(middle, getEnd(x), NotPresent{})) ) {
      // No need to calculate the diff as the end iterator is present
-     return make_pair(addEnd(removeCount(x), middle), addBegin(removeCount(x), middle));
+    return make_pair(make_range(getBegin(x), middle, NotPresent{}), make_range(middle, getEnd(x), NotPresent{}));
   }
 };
 
@@ -594,8 +592,8 @@ struct TYPE_HIDDEN_VISIBILITY Complexity<SplitAtImpl, Range<Iterator, Present, P
 
 template<typename Iterator, typename End, typename Middle, typename LHSCount>
 struct TYPE_HIDDEN_VISIBILITY SplitImpl<Range<Iterator, End, Present>, Middle, LHSCount, typename std::enable_if<!std::is_same<NotPresent, Middle>::value && !std::is_same<NotPresent, LHSCount>::value, void>::type> {
-  static ALWAYS_INLINE_HIDDEN auto apply(Range<Iterator, End, Present> const& x, Middle middle, LHSCount lhsCount) -> decltype( make_pair(addEnd(addCount(x, lhsCount), middle), addBegin(addCount(x, getCount(x) - lhsCount), middle)) ) {
-    return make_pair(addEnd(addCount(x, lhsCount), middle), addBegin(addCount(x, getCount(x) - lhsCount), middle));
+  static ALWAYS_INLINE_HIDDEN auto apply(Range<Iterator, End, Present> const& x, Middle middle, LHSCount lhsCount) -> decltype( make_pair(make_range(getBegin(x), middle, lhsCount), make_range(middle, getEnd(x), getCount(x) - lhsCount)) ) {
+    return make_pair(make_range(getBegin(x), middle, lhsCount), make_range(middle, getEnd(x), getCount(x) - lhsCount));
   }
 };
 
@@ -605,8 +603,8 @@ struct TYPE_HIDDEN_VISIBILITY Complexity<SplitAtImpl, Range<Iterator, End, Prese
 
 template<typename Iterator, typename End, typename Middle, typename LHSCount>
 struct TYPE_HIDDEN_VISIBILITY SplitImpl<Range<Iterator, End, NotPresent>, Middle, LHSCount, typename std::enable_if<!std::is_same<NotPresent, Middle>::value && !std::is_same<NotPresent, LHSCount>::value, void>::type> {
-  static ALWAYS_INLINE_HIDDEN auto apply(Range<Iterator, End, NotPresent> const& x, Middle middle, LHSCount lhsCount) -> decltype( make_pair(addEnd(addCount(x, lhsCount), middle), addBegin(x, middle)) ) {
-    return make_pair(addEnd(addCount(x, lhsCount), middle), addBegin(x, middle));
+  static ALWAYS_INLINE_HIDDEN auto apply(Range<Iterator, End, NotPresent> const& x, Middle middle, LHSCount lhsCount) -> decltype( make_pair(make_range(getBegin(x), middle, lhsCount), make_range(middle, getEnd(x), NotPresent{})) ) {
+    return make_pair(make_range(getBegin(x), middle, lhsCount), make_range(middle, getEnd(x), NotPresent{}));
   }
 };
 
@@ -649,27 +647,27 @@ struct TYPE_HIDDEN_VISIBILITY Complexity<SplitAt, Range<Iterator, End, Count>, M
 
 
 
-ALWAYS_INLINE_HIDDEN NotPresent addCount(NotPresent, NotPresent) { return {}; }
+ALWAYS_INLINE_HIDDEN NotPresent sumCount(NotPresent, NotPresent) { return {}; }
 
 template<typename Count0>
-ALWAYS_INLINE_HIDDEN NotPresent addCount(Count0 const&, NotPresent) { return {}; }
+ALWAYS_INLINE_HIDDEN NotPresent sumCount(Count0 const&, NotPresent) { return {}; }
 
 template<typename Count1>
-ALWAYS_INLINE_HIDDEN NotPresent addCount(NotPresent, Count1 const&) { return {}; }
+ALWAYS_INLINE_HIDDEN NotPresent sumCount(NotPresent, Count1 const&) { return {}; }
 
 template<typename Count0, typename Count1>
-ALWAYS_INLINE_HIDDEN Count0 addCount(Count0 const& count0, Count1 const& count1) { return count0 + count1; }
+ALWAYS_INLINE_HIDDEN Count0 sumCount(Count0 const& count0, Count1 const& count1) { return count0 + count1; }
 
 
 
 // If the second range is bounded then the output range is bounded
 template<typename Iterator0, typename End0, typename Count0, typename Iterator1, typename End1, typename Count1>
 ALWAYS_INLINE_HIDDEN auto
-join(Range<Iterator0, End0, Count0> const& x, Range<Iterator1, End1, Count1> const& y) -> decltype( makeRange(getBegin(x), getEnd(y), addCount(getCount(x), getCount(y))) ) {
+join(Range<Iterator0, End0, Count0> const& x, Range<Iterator1, End1, Count1> const& y) -> decltype( make_range(getBegin(x), getEnd(y), sumCount(getCount(x), getCount(y))) ) {
 
   static_assert(std::is_convertible<Iterator1, Iterator0>::value, "Iterator types must be convertible");
 
-  return makeRange(getBegin(x), getEnd(y), addCount(getCount(x), getCount(y)));
+  return make_range(getBegin(x), getEnd(y), sumCount(getCount(x), getCount(y)));
 }
 
 struct Join { typedef Join type; };
@@ -698,8 +696,8 @@ struct TYPE_HIDDEN_VISIBILITY reverse_impl;
 
 template<typename Iterator, typename Count>
 struct TYPE_HIDDEN_VISIBILITY reverse_impl<Range<Iterator, Present, Count>> {
-  static ALWAYS_INLINE_HIDDEN auto apply(Range<Iterator, Present, Count> const& x) -> decltype( makeRange(reverse_iterator<Iterator>{{getEnd(x)}}, reverse_iterator<Iterator>{{getBegin(x)}}, getCount(x)) ) {
-    return makeRange(reverse_iterator<Iterator>{{getEnd(x)}}, reverse_iterator<Iterator>{{getBegin(x)}}, getCount(x));
+  static ALWAYS_INLINE_HIDDEN auto apply(Range<Iterator, Present, Count> const& x) -> decltype( make_range(make_reverse_iterator<Iterator>(getEnd(x)), make_reverse_iterator<Iterator>(getBegin(x)), getCount(x)) ) {
+    return make_range(make_reverse_iterator<Iterator>(getEnd(x)), make_reverse_iterator<Iterator>(getBegin(x)), getCount(x));
   }
 };
 
@@ -732,24 +730,21 @@ template<typename Iterator, typename End, typename Count>
 struct Complexity<Reverse, Range<Iterator, End, Count>> : Complexity<Reverse_Impl, Range<Iterator, End, Count>> {};
 
 
-/*
-template<typename Iterator, DifferenceType<Iterator> N>
+template<long long N, typename Iterator>
 constexpr ALWAYS_INLINE_HIDDEN auto
-skip(Range<Iterator, Present, Present> const& x) -> decltype ( makeRange(SkipIterator<Iterator, N>{getBegin(x)}, SkipIterator<Iterator, N>{getEnd(x)}, getCount(x)/N) ) {
+  skip(Range<Iterator, Present, Present> const& x) -> decltype ( make_range(make_skip_iterator<N>(getBegin(x)), make_skip_iterator<N>(getEnd(x)), getCount(x)/N) ) {
   // Precondition getCount(x) % N == 0
-  return makeRange(SkipIterator<Iterator, N>{getBegin(x)}, SkipIterator<Iterator, N>{getEnd(x)}, getCount(x)/N);
+  return make_range(make_skip_iterator<N>(getBegin(x)), make_skip_iterator<N>(getEnd(x)), getCount(x)/N);
 }
 
-template<typename Iterator, DifferenceType<Iterator> N>
+template<long long N, typename Iterator>
 constexpr ALWAYS_INLINE_HIDDEN auto
-skip(Range<Iterator, NotPresent, Present> const& x) -> decltype( makeRange(SkipIterator<Iterator, N>{getBegin(x)}, NotPresent{}, getCount(x)/N) ) {
+  skip(Range<Iterator, NotPresent, Present> const& x) -> decltype( make_range(make_skip_iterator<N>(getBegin(x)), NotPresent{}, getCount(x)/N) ) {
   // Precondition getCount(x) % N == 0
-  return makeRange(SkipIterator<Iterator, N>{getBegin(x)}, NotPresent{}, getCount(x)/N);
+  return make_range(make_skip_iterator<N>(getBegin(x)), NotPresent{}, getCount(x)/N);
 }
 
 
-// Skip ... toughie for non-divisible ranges
-*/
 } // namespace range2
 
 #endif

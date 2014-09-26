@@ -57,6 +57,14 @@ struct TYPE_HIDDEN_VISIBILITY Complexity<Advance, Iterator> : if_<std::is_conver
 template<typename Iterator>
 struct TYPE_HIDDEN_VISIBILITY Complexity<Distance, Iterator> : if_<std::is_convertible<IteratorCategory<Iterator>, std::random_access_iterator_tag>::value, ConstantComplexity, LinearComplexity> {};
 
+// cmove = constexpr move ... in C++11 std::move is not a constexpr!
+template<typename T>
+constexpr ALWAYS_INLINE_HIDDEN
+typename std::remove_reference<T>::type&& cmove(T&& t) {
+  return static_cast<typename std::remove_reference<T>::type&&>(t);
+}
+
+
 template<typename T0, typename T1>
 struct TYPE_DEFAULT_VISIBILITY pair
 {
@@ -65,13 +73,13 @@ struct TYPE_DEFAULT_VISIBILITY pair
     T1 m1;
 
     friend constexpr ALWAYS_INLINE_HIDDEN
-    bool operator== (type const& x, type const& y) { return (x.m0 == y.m0) && (x.m1 = y.m1); }
+    bool operator== (type const& x, type const& y) { return (x.m0 == y.m0) && (x.m1 == y.m1); }
 
     friend constexpr ALWAYS_INLINE_HIDDEN
     bool operator!= (type const& x, type const& y) { return !(x == y); }
 
     friend constexpr ALWAYS_INLINE_HIDDEN
-    bool operator< (type const& x, type const& y) { return (x.m0 < y.m0) || ((!y.m0 < x.m0) && (x.m1 < y.m1)); }
+    bool operator< (type const& x, type const& y) { return (x.m0 < y.m0) || (!(y.m0 < x.m0) && (x.m1 < y.m1)); }
 
     friend constexpr ALWAYS_INLINE_HIDDEN
     bool operator<= (type const& x, type const& y) { return !(y < x); }
@@ -84,17 +92,8 @@ struct TYPE_DEFAULT_VISIBILITY pair
 };
 
 template<typename T0, typename T1>
-ALWAYS_INLINE_HIDDEN pair<T0, T1> make_pair(T0 m0, T1 m1) {
+constexpr ALWAYS_INLINE_HIDDEN pair<T0, T1> make_pair(T0 m0, T1 m1) {
   return {cmove(m0), cmove(m1)};
-}
-
-
-
-// cmove = constexpr move ... in C++11 std::move is not a constexpr!
-template<typename T>
-constexpr ALWAYS_INLINE_HIDDEN
-typename std::remove_reference<T>::type&& cmove( T&& t ) {
-  return static_cast<typename std::remove_reference<T>::type&&>(t);
 }
 
 struct TYPE_DEFAULT_VISIBILITY NotPresent {
@@ -105,6 +104,18 @@ struct TYPE_DEFAULT_VISIBILITY NotPresent {
 
     friend constexpr ALWAYS_INLINE_HIDDEN
     bool operator!= (type, type) { return false; }
+
+    friend constexpr ALWAYS_INLINE_HIDDEN
+    bool operator< (type const& x, type const& y) { return false; }
+
+    friend constexpr ALWAYS_INLINE_HIDDEN
+    bool operator<= (type const& x, type const& y) { return !(y < x); }
+
+    friend constexpr ALWAYS_INLINE_HIDDEN
+    bool operator> (type const& x, type const& y) { return y < x; }
+
+    friend constexpr ALWAYS_INLINE_HIDDEN
+    bool operator>= (type const& x, type const& y) { return !(x < y); }
 };
 
 struct TYPE_DEFAULT_VISIBILITY Present {
@@ -115,6 +126,18 @@ struct TYPE_DEFAULT_VISIBILITY Present {
 
     friend constexpr ALWAYS_INLINE_HIDDEN
     bool operator!= (type, type) { return false; }
+
+    friend constexpr ALWAYS_INLINE_HIDDEN
+    bool operator< (type const& x, type const& y) { return false; }
+
+    friend constexpr ALWAYS_INLINE_HIDDEN
+    bool operator<= (type const& x, type const& y) { return !(y < x); }
+
+    friend constexpr ALWAYS_INLINE_HIDDEN
+    bool operator> (type const& x, type const& y) { return y < x; }
+
+    friend constexpr ALWAYS_INLINE_HIDDEN
+    bool operator>= (type const& x, type const& y) { return !(x < y); }
 };
 
 
@@ -182,19 +205,19 @@ struct TYPE_DEFAULT_VISIBILITY Range
     typedef Range type;
     Iterator begin;
 
-    static constexpr ALWAYS_INLINE_HIDDEN type
-    make(Iterator begin, NotPresent, NotPresent) {
+    static constexpr ALWAYS_INLINE_HIDDEN
+    type make(Iterator begin, NotPresent, NotPresent) {
         return {cmove(begin)};
     }
 
-    friend
-    constexpr ALWAYS_INLINE_HIDDEN bool empty_impl(type const& x) { return false; }
+    friend constexpr ALWAYS_INLINE_HIDDEN
+    bool empty_impl(type const& x) { return false; }
 
-    friend
-    constexpr ALWAYS_INLINE_HIDDEN bool operator==(type const& x, type const& y) { return x.begin == y.begin; }
+    friend constexpr ALWAYS_INLINE_HIDDEN
+    bool operator==(type const& x, type const& y) { return x.begin == y.begin; }
 
-    friend
-    constexpr ALWAYS_INLINE_HIDDEN bool operator!=(type const& x, type const& y) { return !(x==y); }
+    friend constexpr ALWAYS_INLINE_HIDDEN
+    bool operator!=(type const& x, type const& y) { return !(x==y); }
 };
 
 template<typename Iterator>
@@ -204,19 +227,19 @@ struct TYPE_DEFAULT_VISIBILITY Range<Iterator, Present, NotPresent>
     Iterator begin;
     Iterator end;
 
-    static constexpr ALWAYS_INLINE_HIDDEN type
-    make(Iterator begin, Iterator end, NotPresent) {
+    static constexpr ALWAYS_INLINE_HIDDEN
+    type make(Iterator begin, Iterator end, NotPresent) {
         return {cmove(begin), cmove(end)};
     }
 
-    friend
-    constexpr ALWAYS_INLINE_HIDDEN bool empty_impl(type const& x) { return x.begin == x.end; }
+    friend constexpr ALWAYS_INLINE_HIDDEN
+    bool empty_impl(type const& x) { return x.begin == x.end; }
 
-    friend
-    constexpr ALWAYS_INLINE_HIDDEN bool operator==(type const& x, type const& y) { return (x.begin == y.begin) && (x.end == y.end); }
+    friend constexpr ALWAYS_INLINE_HIDDEN
+    bool operator==(type const& x, type const& y) { return (x.begin == y.begin) && (x.end == y.end); }
 
-    friend
-    constexpr ALWAYS_INLINE_HIDDEN bool operator!=(type const& x, type const& y) { return !(x==y); }
+    friend constexpr ALWAYS_INLINE_HIDDEN
+    bool operator!=(type const& x, type const& y) { return !(x==y); }
 };
 
 
@@ -228,19 +251,19 @@ struct TYPE_DEFAULT_VISIBILITY Range<Iterator, Present, Present>
     Iterator end;
     RangeCountType<type> count;
 
-    static constexpr ALWAYS_INLINE_HIDDEN type
-    make(Iterator begin, Iterator end, RangeCountType<type> count) {
+    static constexpr ALWAYS_INLINE_HIDDEN
+    type make(Iterator begin, Iterator end, RangeCountType<type> count) {
         return {cmove(begin), cmove(end), cmove(count)};
     }
 
-    friend
-    constexpr ALWAYS_INLINE_HIDDEN bool empty_impl(type const& x) { return RangeCountType<type>(0) == x.count; }
+    friend constexpr ALWAYS_INLINE_HIDDEN
+    bool empty_impl(type const& x) { return RangeCountType<type>(0) == x.count; }
 
-    friend
-    constexpr ALWAYS_INLINE_HIDDEN bool operator==(type const& x, type const& y) { return (x.begin == y.begin) && (x.end == y.end) && (x.count == y.count); }
+    friend constexpr ALWAYS_INLINE_HIDDEN
+    bool operator==(type const& x, type const& y) { return (x.begin == y.begin) && (x.end == y.end) && (x.count == y.count); }
 
-    friend
-    constexpr ALWAYS_INLINE_HIDDEN bool operator!=(type const& x, type const& y) { return !(x==y); }
+    friend constexpr ALWAYS_INLINE_HIDDEN
+    bool operator!=(type const& x, type const& y) { return !(x==y); }
 };
 
 template<typename Iterator>
@@ -250,19 +273,19 @@ struct TYPE_DEFAULT_VISIBILITY Range<Iterator, NotPresent, Present>
     Iterator begin;
     RangeCountType<type> count;
 
-    static constexpr ALWAYS_INLINE_HIDDEN type
-    make(Iterator begin, NotPresent, RangeCountType<type> count) {
+    static constexpr ALWAYS_INLINE_HIDDEN
+    type make(Iterator begin, NotPresent, RangeCountType<type> count) {
         return {cmove(begin), cmove(count)};
     }
 
-    friend
-    constexpr ALWAYS_INLINE_HIDDEN bool empty_impl(type const& x) { return (RangeCountType<type>(0) == x.count); }
+    friend constexpr ALWAYS_INLINE_HIDDEN
+    bool empty_impl(type const& x) { return (RangeCountType<type>(0) == x.count); }
 
-    friend
-    constexpr ALWAYS_INLINE_HIDDEN bool operator==(type const& x, type const& y) { return (x.begin == y.begin) && (x.count == y.count); }
+    friend constexpr ALWAYS_INLINE_HIDDEN
+    bool operator==(type const& x, type const& y) { return (x.begin == y.begin) && (x.count == y.count); }
 
-    friend
-    constexpr ALWAYS_INLINE_HIDDEN bool operator!=(type const& x, type const& y) { return !(x==y); }
+    friend constexpr ALWAYS_INLINE_HIDDEN
+    bool operator!=(type const& x, type const& y) { return !(x==y); }
 };
 
 template<typename T>
@@ -330,6 +353,28 @@ constexpr ALWAYS_INLINE_HIDDEN CountType<Iterator> const&
 getCount(Range<Iterator, End, Present> const& x) {
   return x.count;
 }
+
+
+template<typename Iterator, typename End, typename Count>
+constexpr ALWAYS_INLINE_HIDDEN
+bool operator< (Range<Iterator, End, Count> const& x, Range<Iterator, End, Count> const& y) {
+  return (getBegin(x) < getBegin(y)) ||
+         (!(getBegin(y) < getBegin(x)) && ((getEnd(x) < getEnd(y) ||
+					    (!(getEnd(y) < getEnd(x)) && (getCount(x) < getCount(y))))));
+}
+
+template<typename Iterator, typename End, typename Count>
+constexpr ALWAYS_INLINE_HIDDEN
+bool operator<= (Range<Iterator, End, Count> const& x, Range<Iterator, End, Count> const& y) { return !(y < x); }
+
+template<typename Iterator, typename End, typename Count>
+constexpr ALWAYS_INLINE_HIDDEN
+bool operator> (Range<Iterator, End, Count> const& x, Range<Iterator, End, Count> const& y) { return y < x; }
+
+template<typename Iterator, typename End, typename Count>
+constexpr ALWAYS_INLINE_HIDDEN
+bool operator>= (Range<Iterator, End, Count> const& x, Range<Iterator, End, Count> const& y) { return !(x < y); }
+
 
 
 template<typename Iterator, typename End, typename Count, typename Iterator2>
@@ -459,10 +504,6 @@ addLinearTimeEnd(Range<Iterator, NotPresent, Count> const& x) {
   }
   return addCount(addEnd(cmove(x), getBegin(tmp)), cmove(count));
 }
-
-
-
-
 
 
 

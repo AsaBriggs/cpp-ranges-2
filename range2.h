@@ -730,20 +730,24 @@ template<typename Iterator, typename End, typename Count>
 struct Complexity<Reverse, Range<Iterator, End, Count>> : Complexity<Reverse_Impl, Range<Iterator, End, Count>> {};
 
 
-template<long long N, typename Iterator>
-constexpr ALWAYS_INLINE_HIDDEN auto
-  skip(Range<Iterator, Present, Present> const& x) -> decltype ( make_range(make_skip_iterator<N>(getBegin(x)), make_skip_iterator<N>(getEnd(x)), getCount(x)/N) ) {
-  // Precondition getCount(x) % N == 0
-  return make_range(make_skip_iterator<N>(getBegin(x)), make_skip_iterator<N>(getEnd(x)), getCount(x)/N);
+template<long long N>
+ALWAYS_INLINE_HIDDEN NotPresent make_skip_iterator_impl(NotPresent x) {
+  return x;
 }
 
 template<long long N, typename Iterator>
-constexpr ALWAYS_INLINE_HIDDEN auto
-  skip(Range<Iterator, NotPresent, Present> const& x) -> decltype( make_range(make_skip_iterator<N>(getBegin(x)), NotPresent{}, getCount(x)/N) ) {
-  // Precondition getCount(x) % N == 0
-  return make_range(make_skip_iterator<N>(getBegin(x)), NotPresent{}, getCount(x)/N);
+ALWAYS_INLINE_HIDDEN auto make_skip_iterator_impl(Iterator x) -> decltype( make_skip_iterator<N>(x) ) {
+  return make_skip_iterator<N>(x);
 }
 
+template<long long N, typename Iterator, typename End, typename Count>
+constexpr ALWAYS_INLINE_HIDDEN auto
+skip(Range<Iterator, End, Count> const& x) -> decltype ( make_range(make_skip_iterator<N>(getBegin(x)), make_skip_iterator_impl<N>(getEnd(x)), getCount(x)/N) ) {
+
+  static_assert(std::is_same<Count, Present>::value, "Count must be present to form a valid skip iterator");
+  // Precondition getCount(x) % N == 0
+  return make_range(make_skip_iterator<N>(getBegin(x)), make_skip_iterator_impl<N>(getEnd(x)), getCount(x)/N);
+}
 
 } // namespace range2
 

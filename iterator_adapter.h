@@ -145,7 +145,7 @@ struct TYPE_DEFAULT_VISIBILITY iterator {
   friend constexpr ALWAYS_INLINE_HIDDEN
   reference deref(iterator const& x) { return *x; }
 
-  friend ALWAYS_INLINE_HIDDEN
+  friend constexpr ALWAYS_INLINE_HIDDEN
   iterator successor(iterator const& x) { return {successor(x.basis)}; }
 
   friend ALWAYS_INLINE_HIDDEN
@@ -161,7 +161,7 @@ struct TYPE_DEFAULT_VISIBILITY iterator {
     return tmp;
   }
 
-  friend ALWAYS_INLINE_HIDDEN
+  friend constexpr ALWAYS_INLINE_HIDDEN
   bool operator==(const iterator& x, const iterator& y) { return state(x) == state(y); }
 
   // for bidirectional iterator
@@ -195,7 +195,7 @@ struct TYPE_DEFAULT_VISIBILITY iterator {
   }
 
   // Must be a non-static member function
-  ALWAYS_INLINE_HIDDEN
+  constexpr ALWAYS_INLINE_HIDDEN
   reference operator[](difference_type i) const { return *(*this + i); }
 
   friend constexpr ALWAYS_INLINE_HIDDEN
@@ -321,7 +321,7 @@ struct TYPE_DEFAULT_VISIBILITY skip_iterator_basis {
   typedef DifferenceType<I> difference_type;
   typedef IteratorCategory<I> iterator_category;
 
-  friend  ALWAYS_INLINE_HIDDEN
+  friend constexpr ALWAYS_INLINE_HIDDEN
   reference deref(skip_iterator_basis const& x) { return *x.position; }
 
   friend constexpr ALWAYS_INLINE_HIDDEN

@@ -1,5 +1,5 @@
 #include "range2.h"
-
+#include "algorithms.h"
 #include <cassert>
 #include <iostream>
 #include <vector>
@@ -45,10 +45,6 @@ public:
   constexpr auto r01 = make_range(begin, NotPresent{}, count);
   constexpr auto r10 = make_range(begin, end, NotPresent{});
   constexpr auto r11 = make_range(begin, end, count);
-
-  TEST_ASSERT((std::is_same<RangeEffectiveIteratorCategory<Range<PtrType, Present, Present>>, std::random_access_iterator_tag>::value));
-  TEST_ASSERT((std::is_same<RangeEffectiveIteratorCategory<Range<std::istream_iterator<char>, Present, Present>>, std::input_iterator_tag>::value));
-  TEST_ASSERT((std::is_same<RangeEffectiveIteratorCategory<Range<std::forward_list<char>::iterator, Present, Present>>, std::forward_iterator_tag>::value));
 
   constexpr pair<int, int> pairArray[2] = {make_pair(0,0), make_pair(0,1)};
 
@@ -1129,6 +1125,36 @@ public:
 
     performanceTestImpl(std::cref(v), "std::accumulate", "", [](std::reference_wrapper<V const> x) -> SumType { return std::accumulate(x.get().cbegin(), x.get().cend(), SumType(0)); });
    }
+
+  template<typename T>
+  struct Summation {
+    T count;
+    template<typename Iterator>
+    void operator()(Iterator x) { count += *x; }
+  };
+
+  template<typename R>
+  void testForEachImpl(R r) {
+    {
+      auto s = for_each(r, Summation<int>{0});
+      assert(s.count == 39*20);
+    }
+    {
+      auto s = for_each(r, Summation<int>{0}, Inline4{});
+      assert(s.count == 39*20);
+    }
+  }
+
+  void testForEach() {
+    testForEachImpl(make_range(begin, end, NotPresent{}));
+    testForEachImpl(make_range(begin, NotPresent{}, count));
+    testForEachImpl(make_range(begin, end, count));
+
+    std::forward_list<int> x(begin, end);
+    testForEachImpl(make_range(x.begin(), x.end(), NotPresent{}));
+    testForEachImpl(make_range(x.begin(), NotPresent{}, count));
+    testForEachImpl(make_range(x.begin(), x.end(), count));
+  }
 } // unnamed namespace
 } // namespace range2
 
@@ -1173,4 +1199,6 @@ int main() {
   testReverse();
   testSkip();
   testReverseSkip();
+
+  testForEach();
 }

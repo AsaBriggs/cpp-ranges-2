@@ -150,6 +150,16 @@ using IsABoundedRange = IsABoundedRange_Impl<T>;
 
 
 template<typename T>
+struct TYPE_HIDDEN_VISIBILITY IsACountedRange_Impl : std::false_type {};
+
+template<typename Iterator, typename End>
+struct TYPE_HIDDEN_VISIBILITY IsACountedRange_Impl<Range<Iterator, End, Present>> : std::true_type {};
+
+template<typename T>
+using IsACountedRange = IsACountedRange_Impl<T>;
+
+
+template<typename T>
 struct TYPE_HIDDEN_VISIBILITY RangeIterator_Impl;
 
 template<typename Iterator, typename End, typename Count>
@@ -166,16 +176,13 @@ using RangeIteratorTraits = std::iterator_traits<RangeIterator<T>>;
 template<typename T>
 using RangeDifferenceType = typename RangeIteratorTraits<T>::difference_type;
 
-template<typename T, typename Enable=void>
-struct TYPE_HIDDEN_VISIBILITY RangeEffectiveIteratorCategory_Impl {};
+template<typename T>
+using RangeIteratorCategory = typename std::iterator_traits<RangeIterator<T>>::iterator_category;
 
-template<typename Iterator, typename End, typename Count>
-struct TYPE_HIDDEN_VISIBILITY RangeEffectiveIteratorCategory_Impl<Range<Iterator, End, Count>> {
-  typedef IteratorCategory<Iterator> type;
-};
 
 template<typename T>
-using RangeEffectiveIteratorCategory = typename RangeEffectiveIteratorCategory_Impl<T>::type;
+struct TYPE_HIDDEN_VISIBILITY IsInlineable : std::integral_constant<bool, IsACountedRange<T>::value && std::is_convertible<RangeIteratorCategory<T>, std::forward_iterator_tag>::value> {};
+
 
 template<typename Iterator, typename End, typename Count>
 struct TYPE_DEFAULT_VISIBILITY Range
@@ -765,6 +772,12 @@ skip(Range<Iterator, End, Count> const& x) -> decltype ( make_range(make_skip_it
   static_assert(std::is_same<Count, Present>::value, "Count must be present to form a valid skip iterator");
   // Precondition get_count(x) % N == 0
   return make_range(make_skip_iterator<N>(get_begin(x)), impl::make_skip_iterator_impl<N>(get_end(x)), get_count(x)/N);
+}
+
+template<typename Iterator, typename End>
+constexpr ALWAYS_INLINE_HIDDEN pair<Range<Iterator, Present, Present>, Range<Iterator, Present, Present>>
+splitInTwo (Range<Iterator, End, Present> const& x) {
+  return split_at(x, NotPresent{}, getCount(x)/2);
 }
 
 } // namespace range2

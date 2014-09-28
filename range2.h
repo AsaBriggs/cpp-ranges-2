@@ -171,6 +171,9 @@ template<typename T>
 using RangeIterator = typename RangeIterator_Impl<T>::type;
 
 template<typename T>
+using RangeValue = ValueType<RangeIterator<T>>;
+
+template<typename T>
 using RangeIteratorTraits = std::iterator_traits<RangeIterator<T>>;
 
 template<typename T>
@@ -179,9 +182,11 @@ using RangeDifferenceType = typename RangeIteratorTraits<T>::difference_type;
 template<typename T>
 using RangeIteratorCategory = typename std::iterator_traits<RangeIterator<T>>::iterator_category;
 
+template<typename T>
+struct TYPE_HIDDEN_VISIBILITY RepeatableRange : std::is_convertible<RangeIteratorCategory<T>, std::forward_iterator_tag> {};
 
 template<typename T>
-struct TYPE_HIDDEN_VISIBILITY IsInlineable : std::integral_constant<bool, IsACountedRange<T>::value && std::is_convertible<RangeIteratorCategory<T>, std::forward_iterator_tag>::value> {};
+struct TYPE_HIDDEN_VISIBILITY IsInlineable : std::integral_constant<bool, IsACountedRange<T>::value && RepeatableRange<T>::value> {};
 
 
 template<typename Iterator, typename End, typename Count>

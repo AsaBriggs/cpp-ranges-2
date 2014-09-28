@@ -1126,35 +1126,247 @@ public:
     performanceTestImpl(std::cref(v), "std::accumulate", "", [](std::reference_wrapper<V const> x) -> SumType { return std::accumulate(x.get().cbegin(), x.get().cend(), SumType(0)); });
    }
 
-  template<typename T>
-  struct Summation {
-    T count;
-    template<typename Iterator>
-    void operator()(Iterator x) { count += *x; }
-  };
+  template<typename Op>
+  void forEachRangeRun(Op op) {
+    op(make_range(begin, end, NotPresent{}));
+    op(make_range(begin, NotPresent{}, count));
+    op(make_range(begin, end, count));
 
-  template<typename R>
-  void testForEachImpl(R r) {
-    {
-      auto s = for_each(r, Summation<int>{0});
-      assert(s.count == 39*20);
-    }
-    {
-      auto s = for_each(r, Summation<int>{0}, Inline4{});
-      assert(s.count == 39*20);
-    }
-  }
-
-  void testForEach() {
-    testForEachImpl(make_range(begin, end, NotPresent{}));
-    testForEachImpl(make_range(begin, NotPresent{}, count));
-    testForEachImpl(make_range(begin, end, count));
+    op(make_range(begin, begin, NotPresent{}));
+    op(make_range(begin, NotPresent{}, 0));
+    op(make_range(begin, begin, 0));
 
     std::forward_list<int> x(begin, end);
-    testForEachImpl(make_range(x.begin(), x.end(), NotPresent{}));
-    testForEachImpl(make_range(x.begin(), NotPresent{}, count));
-    testForEachImpl(make_range(x.begin(), x.end(), count));
+    op(make_range(x.begin(), x.end(), NotPresent{}));
+    op(make_range(x.begin(), NotPresent{}, count));
+    op(make_range(x.begin(), x.end(), count));
+    op(make_range(x.begin(), x.begin(), NotPresent{}));
+    op(make_range(x.begin(), NotPresent{}, 0));
+    op(make_range(x.begin(), x.begin(), 0));
   }
+
+  struct TestForEachOp {
+
+    template<typename T>
+    struct Summation {
+      T count;
+      template<typename Iterator>
+       void operator()(Iterator x) { count += *x; }
+   };
+
+    template<typename R>
+    void operator()(R r) const {
+      if(is_empty(r)) {
+        {
+          auto tmp = for_each(r, Summation<int>{0});
+          assert(tmp.m0.count == 0);
+        }
+        {
+          auto tmp = for_each(r, Summation<int>{0}, Inline4{});
+          assert(tmp.m0.count == 0);
+        }
+      } else {
+        {
+          auto tmp = for_each(r, Summation<int>{0});
+          assert(tmp.m0.count == 39*20);
+        }
+        {
+          auto tmp = for_each(r, Summation<int>{0}, Inline4{});
+          assert(tmp.m0.count == 39*20);
+        }
+      }
+    }
+  };
+
+  struct TestFindIfOp {
+
+    template<typename T>
+    struct FindEqual {
+      T value;
+      template<typename Iterator>
+      bool operator()(Iterator x) { return value == *x; }
+    };
+
+    template<typename R>
+    void operator()(R x) const {
+      if(is_empty(x)) {
+        {
+          auto tmp = find_if(x, FindEqual<int>{5});
+          assert(is_empty(tmp));
+        }
+        {
+          auto tmp = find_if(x, FindEqual<int>{-1});
+          assert(is_empty(tmp));
+        }
+        {
+          auto tmp = find_if(x, FindEqual<int>{5}, Inline4{});
+          assert(is_empty(tmp));
+        }
+        {
+          auto tmp = find_if(x, FindEqual<int>{-1}, Inline4{});
+          assert(is_empty(tmp));
+	}
+      } else {
+        {
+          auto tmp = find_if(x, FindEqual<int>{5});
+          assert(!is_empty(tmp));
+          assert(5 == *get_begin(tmp));
+        }
+        {
+          auto tmp = find_if(x, FindEqual<int>{-1});
+          assert(is_empty(tmp));
+        }
+        {
+          auto tmp = find_if(x, FindEqual<int>{5}, Inline4{});
+          assert(!is_empty(tmp));
+          assert(5 == *get_begin(tmp));
+        }
+        {
+          auto tmp = find_if(x, FindEqual<int>{-1}, Inline4{});
+          assert(is_empty(tmp));
+	}
+      }
+    }
+  };
+
+  struct TestCountIfOp {
+
+    template<typename T>
+    struct FindLessThan {
+      T value;
+      template<typename Iterator>
+      bool operator()(Iterator x) { return *x < value; }
+    };
+
+    template<typename T>
+    void operator()(T x) const {
+      if(is_empty(x)) {
+        {
+          auto tmp = count_if(x, FindLessThan<int>{10}, 0);
+          assert(tmp == 0);
+        }
+        {
+          auto tmp = count_if(x, FindLessThan<int>{10}, 0, Inline4{});
+          assert(tmp == 0);
+        }
+        {
+          auto tmp = count_if(x, FindLessThan<int>{20}, 0);
+          assert(tmp == 0);
+        }
+        {
+          auto tmp = count_if(x, FindLessThan<int>{20}, 5);
+          assert(tmp == 5);
+	}
+      } else {
+        {
+          auto tmp = count_if(x, FindLessThan<int>{10}, 0);
+          assert(tmp == 10);
+        }
+        {
+          auto tmp = count_if(x, FindLessThan<int>{10}, 0, Inline4{});
+          assert(tmp == 10);
+        }
+        {
+          auto tmp = count_if(x, FindLessThan<int>{20}, 0);
+          assert(tmp == 20);
+        }
+        {
+          auto tmp = count_if(x, FindLessThan<int>{20}, 5);
+          assert(tmp == 25);
+	}
+      }
+    }
+  };
+
+
+  struct Deref {
+    template<typename I>
+    ValueType<I> operator()(I x) const { return *x; }
+  };
+
+  struct Add {
+    template<typename T>
+    T operator()(T x, T y) const { return x+y; }
+  };
+
+  struct TestReduce {
+    template<typename R>
+    void operator()(R r) const {
+      if (is_empty(r)) {
+	{
+	  auto tmp = reduce(r, Add{}, Deref{}, RangeValue<R>(0));
+	  assert(0 == tmp.m0);
+	  assert(is_empty(tmp.m1));
+	}
+	{
+	  auto tmp = reduce(r, Add{}, Deref{}, RangeValue<R>(0), Inline4{});
+	  assert(0 == tmp.m0);
+	  assert(is_empty(tmp.m1));
+	}
+      } else {
+	{
+	  auto tmp = reduce(r, Add{}, Deref{}, RangeValue<R>(0));
+	  assert(39*20 == tmp.m0);
+	  assert(is_empty(tmp.m1));
+	}
+	{
+	  auto tmp = reduce(r, Add{}, Deref{}, RangeValue<R>(0), Inline4{});
+	  assert(39*20 == tmp.m0);
+	  assert(is_empty(tmp.m1));
+	}
+      }
+    }
+  };
+
+  struct TestReduceNonEmpty {
+    template<typename R>
+    void operator()(R r) const {
+      if (is_empty(r)) {
+	// Can't test empty ranges
+      } else {
+	{
+	  auto tmp = reduce_nonempty(r, Add{}, Deref{});
+	  assert(39*20 == tmp.m0);
+	  assert(is_empty(tmp.m1));
+	}
+	{
+	  auto tmp = reduce_nonempty(r, Add{}, Deref{}, Inline4{});
+	  assert(39*20 == tmp.m0);
+	  assert(is_empty(tmp.m1));
+	}
+      }
+    }
+  };
+
+  struct TestReduceNonZeroes {
+    template<typename R>
+    void operator()(R r) const {
+      if (is_empty(r)) {
+	{
+	  auto tmp = reduce_nonzeroes(r, Add{}, Deref{}, RangeValue<R>(0));
+	  assert(0 == tmp.m0);
+	  assert(is_empty(tmp.m1));
+	}
+	{
+	  auto tmp = reduce_nonzeroes(r, Add{}, Deref{}, RangeValue<R>(0), Inline4{});
+	  assert(0 == tmp.m0);
+	  assert(is_empty(tmp.m1));
+	}
+      } else {
+	{
+	  auto tmp = reduce_nonzeroes(r, Add{}, Deref{}, RangeValue<R>(0));
+	  assert(39*20 == tmp.m0);
+	  assert(is_empty(tmp.m1));
+	}
+	{
+	  auto tmp = reduce_nonzeroes(r, Add{}, Deref{}, RangeValue<R>(0), Inline4{});
+	  assert(39*20 == tmp.m0);
+	  assert(is_empty(tmp.m1));
+	}
+      }
+    }
+  };
+
 } // unnamed namespace
 } // namespace range2
 
@@ -1200,5 +1412,10 @@ int main() {
   testSkip();
   testReverseSkip();
 
-  testForEach();
+  forEachRangeRun(TestForEachOp{});
+  forEachRangeRun(TestFindIfOp{});
+  forEachRangeRun(TestCountIfOp{});
+  forEachRangeRun(TestReduce{});
+  forEachRangeRun(TestReduceNonEmpty{});
+  forEachRangeRun(TestReduceNonZeroes{});
 }

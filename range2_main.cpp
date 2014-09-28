@@ -4,6 +4,7 @@
 #include <iostream>
 #include <vector>
 #include <numeric>
+#include <functional>
 #include <forward_list>
 #include <chrono>
 
@@ -1367,6 +1368,180 @@ public:
     }
   };
 
+  struct TestFindMismatch {
+    template<typename R0, typename Iterator1, typename Count>
+    void testBeginR1IsEndR0(R0 r0, Range<Iterator1, Present, Count> r1) const {
+      assert(get_begin(r0) == get_end(r1));
+    }
+
+    template<typename R0, typename Iterator1, typename Count>
+    void testBeginR1IsEndR0(R0 r0, Range<Iterator1, NotPresent, Count> r1) const {
+      assert(get_begin(r0) == range2::advance(get_begin(r1), count));
+    }
+
+    struct FindOp {
+      template<typename R0, typename R1, typename Op>
+      auto operator()(R0 r0, R1 r1, Op op) -> decltype( find_mismatch(r0, r1, op) ) {
+	return find_mismatch(r0, r1, op);
+      }
+    };
+
+    struct FindOpInlinePreferences {
+      template<typename R0, typename R1, typename Op>
+      auto operator()(R0 r0, R1 r1, Op op) -> decltype( find_mismatch(r0, r1, op) ) {
+	return find_mismatch(r0, r1, op, Inline4{});
+      }
+    };
+
+    template<typename R0, typename R1, typename Op, typename FindOp>
+    void testNonEmpty(R0 r0, R1 r1, Op op, FindOp fo) const {
+      auto tmp = fo(r0, r1, op);
+      assert(is_empty(tmp.m0));
+      testBeginR1IsEndR0(tmp.m0, r0);
+      assert(is_empty(tmp.m1));
+      testBeginR1IsEndR0(tmp.m1, r1);
+    }
+
+    template<typename R0, typename R1, typename Op>
+    void testNonEmpties(R0 r0, R1 r1, Op op) const {
+      testNonEmpty(r0, r1, op, FindOp{});
+      testNonEmpty(r0, r1, op, FindOpInlinePreferences{});
+      testNonEmpty(r1, r0, op, FindOp{});
+      testNonEmpty(r1, r0, op, FindOpInlinePreferences{});
+    }
+
+    template<typename R>
+    void operator()(R r) const {
+      std::vector<int> x (begin, end);
+      auto bounded = make_range(x.begin(), x.end(), NotPresent{});
+      auto counted = make_range(x.begin(), NotPresent{}, x.size());
+      auto bounded_counted = make_range(x.begin(), x.end(), x.size());
+      auto unbounded = make_range(x.begin(), NotPresent{}, NotPresent{});
+
+      auto op = Deref2Op<std::equal_to<int>>{std::equal_to<int>{}};
+      if (is_empty(r)) {
+	{
+	  auto tmp = find_mismatch(r, bounded, op);
+	  assert(is_empty(tmp.m0));
+	  assert(!is_empty(tmp.m1));
+	  assert(get_begin(tmp.m1) == x.begin());
+	  assert(get_end(tmp.m1) == x.end());
+	}
+	{
+	  auto tmp = find_mismatch(r, counted, op);
+	  assert(is_empty(tmp.m0));
+	  assert(!is_empty(tmp.m1));
+	  assert(get_begin(tmp.m1) == x.begin());
+	  assert(get_count(tmp.m1) == x.size());
+	}
+	{
+	  auto tmp = find_mismatch(r, bounded_counted, op);
+	  assert(is_empty(tmp.m0));
+	  assert(!is_empty(tmp.m1));
+	  assert(get_begin(tmp.m1) == x.begin());
+	  assert(get_end(tmp.m1) == x.end());
+	  assert(get_count(tmp.m1) == x.size());
+	}
+	{
+	  auto tmp = find_mismatch(r, unbounded, op);
+	  assert(is_empty(tmp.m0));
+	  assert(!is_empty(tmp.m1));
+	  assert(get_begin(tmp.m1) == x.begin());
+	}
+      } else {
+	testNonEmpties(r, bounded, op);
+	testNonEmpties(r, counted, op);
+	testNonEmpties(r, bounded_counted, op);
+
+	{
+	  auto tmp = find_mismatch(r, unbounded, op);
+	  assert(is_empty(tmp.m0));
+	  testBeginR1IsEndR0(tmp.m0, r);
+	  // unbounded range is never empty.
+	  assert(!is_empty(tmp.m1));
+	  assert(get_begin(tmp.m1) == x.end());
+	}
+	auto y = x;
+	y[10]=y[10]+1;
+	auto tmp = find_mismatch(r, make_range(y.begin(), y.end(), y.size()), op);
+	assert(!is_empty(tmp.m0));
+	assert(!is_empty(tmp.m1));
+	assert(y.begin() + 10 == get_begin(tmp.m1));
+      }
+    }
+  };
+
+  template<typename T>
+  void testAdjacentMismatchInputResult(T x) {
+      assert(!is_empty(x.m1));
+      assert(5 == x.m0);
+      assert(5 == *get_begin(x.m1));
+  }
+
+  void testFindAdjacentMismatchInput() {
+    int arr[] = {1, 2, 3, 4, 5, 5, 6};
+    auto op = Deref2Op<std::less<int>>{std::less<int>{}};
+    {
+      auto x = find_adjacent_mismatch_input_non_empty(make_range(&arr[0], NotPresent{}, NotPresent{}), op);
+      testAdjacentMismatchInputResult(x);
+    }
+
+    {
+      auto x = find_adjacent_mismatch_input_non_empty(make_range(&arr[0], &arr[0] + 6, NotPresent{}), op);
+      testAdjacentMismatchInputResult(x);
+    }
+
+    {
+      auto x = find_adjacent_mismatch_input_non_empty(make_range(&arr[0], NotPresent{}, 6), op);
+      testAdjacentMismatchInputResult(x);
+    }
+
+    {
+      auto x = find_adjacent_mismatch_input_non_empty(make_range(&arr[0], &arr[0] + 6, 6), op);
+      testAdjacentMismatchInputResult(x);
+    }
+
+    {
+      auto x = find_adjacent_mismatch_input_non_empty(make_range(&arr[0], &arr[0] + 6, 6), op, Inline4{});
+      testAdjacentMismatchInputResult(x);
+    }
+  }
+
+  template<typename T>
+  void testAdjacentMismatchResult(T x) {
+      assert(!is_empty(x));
+      assert(5 == *get_begin(x));
+  }
+
+  void testFindAdjacentMismatch() {
+    int arr[] = {1, 2, 3, 4, 5, 5, 6};
+    auto op = Deref2Op<std::less<int>>{std::less<int>{}};
+    {
+      auto x = find_adjacent_mismatch(make_range(&arr[0], NotPresent{}, NotPresent{}), op);
+      testAdjacentMismatchResult(x);
+    }
+
+    {
+      auto x = find_adjacent_mismatch(make_range(&arr[0], &arr[0] + 6, NotPresent{}), op);
+      testAdjacentMismatchResult(x);
+    }
+
+    {
+      auto x = find_adjacent_mismatch(make_range(&arr[0], NotPresent{}, 6), op);
+      testAdjacentMismatchResult(x);
+    }
+
+    {
+      auto x = find_adjacent_mismatch(make_range(&arr[0], &arr[0] + 6, 6), op);
+      testAdjacentMismatchResult(x);
+    }
+
+    {
+      auto x = find_adjacent_mismatch(make_range(&arr[0], &arr[0] + 6, 6), op, Inline4{});
+      testAdjacentMismatchResult(x);
+    }
+  }
+
 } // unnamed namespace
 } // namespace range2
 
@@ -1384,7 +1559,7 @@ int main() {
   testAddEnd();
   testAddCount();
 
-  // Test depends on ability to get & add both end & count.z
+  // Test depends on ability to get & add both end & count.
   testRangeRelationals();
 
   testRemoveEnd();
@@ -1418,4 +1593,7 @@ int main() {
   forEachRangeRun(TestReduce{});
   forEachRangeRun(TestReduceNonEmpty{});
   forEachRangeRun(TestReduceNonZeroes{});
+  forEachRangeRun(TestFindMismatch{});
+  testFindAdjacentMismatchInput();
+  testFindAdjacentMismatch();
 }

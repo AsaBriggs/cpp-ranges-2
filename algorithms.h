@@ -5,6 +5,11 @@
 #include "range2.h"
 #endif
 
+#ifndef INCLUDED_CASSERT
+#define INCLUDED_CASSERT
+#include <cassert>
+#endif
+
 namespace range2 {
 
 struct TYPE_HIDDEN_VISIBILITY NoInline {};
@@ -47,11 +52,9 @@ struct TYPE_HIDDEN_VISIBILITY complement
 {
   Op op;
 
-  template<typename T0, typename T1>
-  // Requires input_type(Op, 0) == T0
-  // input_type(Op, 1) == T1
-  ALWAYS_INLINE_HIDDEN auto operator()(T0&& x, T1&& y) -> decltype( !op(std::forward<T0>(x), std::forward<T1>(y)) ) {
-    return !op(std::forward<T0>(x), std::forward<T1>(y));
+  template<typename... T>
+  ALWAYS_INLINE_HIDDEN auto operator()(T&&... t) -> decltype( !op(std::forward<T>(t)...) ) {
+    return !op(std::forward<T>(t)...);
   }
 };
 
@@ -214,7 +217,7 @@ struct TYPE_HIDDEN_VISIBILITY reduce_op
 
 template<typename Range, typename Op, typename Func, typename InliningPreferences>
 ALWAYS_INLINE_HIDDEN pair<RangeValue<Range>, Range> reduce_nonempty_impl(Range r, Op op, Func f, InliningPreferences p) {
-  // requires !is_empty(r)
+  assert(!is_empty(r));
   auto operation = reduce_op<Op, Func, RangeValue<Range>>{op, f, *get_begin(r)};
   auto tmp = for_each_impl(next(r), operation, p);
   return range2::make_pair(cmove(tmp.m0.state), cmove(tmp.m1));
@@ -222,13 +225,13 @@ ALWAYS_INLINE_HIDDEN pair<RangeValue<Range>, Range> reduce_nonempty_impl(Range r
 
 template<typename Range, typename Op, typename Func, typename InliningPreferences>
 ALWAYS_INLINE_HIDDEN auto reduce_nonempty(Range r, Op op, Func f, InliningPreferences p) -> decltype( reduce_nonempty_impl(add_constant_time_end(r), op, f, p) ) {
-  // requires !is_empty(r)
+  assert(!is_empty(r));
   return reduce_nonempty_impl(add_constant_time_end(r), op, f, p);
 }
 
 template<typename Range, typename Op, typename Func>
 ALWAYS_INLINE_HIDDEN auto reduce_nonempty(Range r, Op op, Func f) -> decltype( reduce_nonempty_impl(add_constant_time_end(r), op, f, NoInline{}) ) {
-  // requires !is_empty(r)
+  assert(!is_empty(r));
   return reduce_nonempty_impl(add_constant_time_end(r), op, f, NoInline{});
 }
 
@@ -291,7 +294,7 @@ template<typename Range0, typename Range1, typename Op, typename InliningPrefere
 INLINE pair<Range0, Range1> find_mismatch_impl(Range0 r0, Range1 r1, Op op, InliningPreferences p) {
 
   // TODO if both are counted ranges just check on the minimum of get_count(r0) and get_count(r1)
-  while(!is_empty(r0) && !is_empty(r1) && !op(get_begin(r0), get_begin(r1))) {
+  while(!is_empty(r0) && !is_empty(r1) && op(get_begin(r0), get_begin(r1))) {
     r0 = next(r0), r1 = next(r1);
   }
   return range2::make_pair(r0, r1);
@@ -299,13 +302,55 @@ INLINE pair<Range0, Range1> find_mismatch_impl(Range0 r0, Range1 r1, Op op, Inli
 
 template<typename Range0, typename Range1, typename Op, typename InliningPreferences>
 ALWAYS_INLINE_HIDDEN auto find_mismatch(Range0 r0, Range1 r1, Op op, InliningPreferences p) -> decltype( find_mismatch_impl(add_constant_time_end(r0), add_constant_time_end(r1), op, NoInline{}) ) {
-  return find_adjacent_mismatch_impl(add_constant_time_end(r0), add_constant_time_end(r1), op, p);
+  return find_mismatch_impl(add_constant_time_end(r0), add_constant_time_end(r1), op, p);
 }
 
 template<typename Range0, typename Range1, typename Op>
 ALWAYS_INLINE_HIDDEN auto find_mismatch(Range0 r0, Range1 r1, Op op) -> decltype( find_mismatch_impl(add_constant_time_end(r0), add_constant_time_end(r1), op, NoInline{}) ) {
-  return find_adjacent_mismatch_impl(add_constant_time_end(r0), add_constant_time_end(r1), op, NoInline{});
+  return find_mismatch_impl(add_constant_time_end(r0), add_constant_time_end(r1), op, NoInline{});
 }
+
+
+template<typename Range, typename Op, typename InliningPreferences>
+INLINE pair<RangeValue<Range>, Range> find_adjacent_mismatch_forward_non_empty_impl(Range r, Op op, InliningPreferences p) {
+  assert(!is_empty(r));
+  RangeValue<Range> tmp = *get_begin(r);
+  r = next(r);
+  while (!is_empty(r)) {
+    if (!op(&tmp, get_begin(r))) return make_pair(tmp, r);
+    tmp = *get_begin(r);
+    r = next(r);
+  }
+  return make_pair(tmp, r);
+}
+
+template<typename Range, typename Op, typename InliningPreferences>
+ALWAYS_INLINE_HIDDEN auto find_adjacent_mismatch_input_non_empty(Range r, Op op, InliningPreferences p) -> decltype( find_adjacent_mismatch_forward_non_empty_impl(add_constant_time_end(r), op, p) ) {
+   return find_adjacent_mismatch_forward_non_empty_impl(add_constant_time_end(r), op, p);
+}
+
+template<typename Range, typename Op>
+ALWAYS_INLINE_HIDDEN auto find_adjacent_mismatch_input_non_empty(Range r, Op op) -> decltype( find_adjacent_mismatch_forward_non_empty_impl(add_constant_time_end(r), op, NoInline{}) ) {
+  return find_adjacent_mismatch_forward_non_empty_impl(add_constant_time_end(r), op, NoInline{});
+}
+
+
+template<typename Range, typename Op, typename InliningPreferences>
+ALWAYS_INLINE_HIDDEN Range find_adjacent_mismatch_impl(Range r, Op op, InliningPreferences p) {
+  auto r2 = make_range(get_begin(next(r)), NotPresent{}, NotPresent{});
+  return find_mismatch_impl(r, r2, op, p).m0;
+}
+
+template<typename Range, typename Op, typename InliningPreferences>
+ALWAYS_INLINE_HIDDEN auto find_adjacent_mismatch(Range r, Op op, InliningPreferences p) -> decltype( find_adjacent_mismatch_impl(add_constant_time_end(r), op, p) ) {
+  return find_adjacent_mismatch_impl(add_constant_time_end(r), op, p);
+}
+
+template<typename Range, typename Op>
+ALWAYS_INLINE_HIDDEN auto find_adjacent_mismatch(Range r, Op op) -> decltype( find_adjacent_mismatch_impl(add_constant_time_end(r), op, NoInline{}) ) {
+  return find_adjacent_mismatch_impl(add_constant_time_end(r), op, NoInline{});
+}
+
 
 } // namespace range2
 

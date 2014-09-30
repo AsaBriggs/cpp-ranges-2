@@ -393,7 +393,7 @@ public:
   template<typename T>
   void testBoundedRange(T x) {
     int i = 0;
-    while(!is_empty(x)) {
+    while (!is_empty(x)) {
       assert(i == *get_begin(x));
       ++i;
       x = next(x);
@@ -772,7 +772,7 @@ public:
 
     //Check successor and deref
     int expected = count-1;
-    while(Start != End) {
+    while (Start != End) {
       assert(expected == *Start);
       --expected;
       ++Start;
@@ -782,7 +782,7 @@ public:
     // check predecessor
     expected = 0;
     Start = make_reverse_iterator(end);
-    while(Start != End) {
+    while (Start != End) {
       --End;
       assert(expected == *End);
       ++expected;
@@ -823,7 +823,7 @@ public:
     // Test predecessor
     Start = make_skip_iterator<N>(begin);
     expected = count - N;
-    while(Start != End) {
+    while (Start != End) {
       --End;
       assert(expected == *End);
       expected -= N;
@@ -870,7 +870,7 @@ public:
 
     // Test successor
     int expected = 0;
-    while(!is_empty(y)) {
+    while (!is_empty(y)) {
       assert(expected == *get_begin(y));
       expected += N;
       y = next(y);
@@ -943,7 +943,7 @@ public:
     auto count = get_count(x);
     auto begin = get_begin(x);
     SumType tmp = 0;
-    while(count) {
+    while (decltype(count){0} != count) {
       tmp += *begin++;
       --count;
     }
@@ -959,13 +959,13 @@ public:
     auto cBy2 = count/2;
     count -= cBy2*2;
     auto begin = get_begin(x);
-    while (cBy2) {
+    while (decltype(cBy2){0} != cBy2) {
       tmp0 += *begin;
       tmp1 += *(begin+1);
       begin += 2;
       --cBy2;
     }
-    if(count) {
+    if (decltype(count){0} != count) {
       tmp0 += *begin;
     }
 
@@ -982,7 +982,7 @@ public:
     auto cBy4 = count/4;
     count -= cBy4*4;
     auto begin = get_begin(x);
-    while (cBy4) {
+    while (decltype(cBy4){0} != cBy4) {
       tmp0 += *begin;
       tmp1 += *(begin+1);
       tmp2 += *(begin+2);
@@ -991,7 +991,7 @@ public:
       --cBy4;
     }
     SumType tmp = tmp0 + tmp1 + tmp2 + tmp3;
-    while(count) {
+    while (decltype(count){0} != count) {
       tmp += *begin++;
       --count;
     }
@@ -1009,7 +1009,7 @@ public:
     auto cBy4 = count/4;
     count -= cBy4*4;
     auto range = make_range(get_begin(x), NotPresent{}, NotPresent{});
-    while (cBy4) {
+    while (decltype(cBy4){0} != cBy4) {
       auto r1 = next(range);
       auto r2 = next(r1);
       auto r3 = next(r2);
@@ -1021,7 +1021,7 @@ public:
       range = next(r3);
     }
     SumType tmp4 = 0;
-    while(count) {
+    while (decltype(count){0} != count) {
       tmp4 += *get_begin(range);
       range = next(range);
       --count;
@@ -1044,7 +1044,7 @@ public:
     auto cBy8 = count/8;
     count -= cBy8*8;
     auto begin = get_begin(x);
-    while (cBy8) {
+    while (decltype(cBy8){0} != cBy8) {
       tmp0 += *begin;
       tmp1 += *(begin+1);
       tmp2 += *(begin+2);
@@ -1057,7 +1057,7 @@ public:
       --cBy8;
     }
     SumType tmp = tmp0 + tmp1 + tmp2 + tmp3 + tmp4 + tmp5 + tmp6 + tmp7;
-    while(count) {
+    while (decltype(count){0} != count) {
       tmp += *begin++;
       --count;
     }
@@ -1095,10 +1095,29 @@ public:
     performanceTestImpl(x, description, " Unrolled (8)", [](T x) -> SumType { return unrolledSumOver8(x); });
   }
 
+  template<int LinearSearchLength, typename T, typename InliningPreferences>
+  void performanceTestPartitionPoint(T x, char const* const description, InliningPreferences p, std::vector<SumType> const& toFind) {
+    timer t;
+    t.start();
+    SumType sum = 0;
+    SumType s = 0;
+    auto op = [&s](SumType y) { return s < y; };
+    auto pred = make_derefop(op);
+    for (int i=0; i < toFind.size(); ++i) {
+      s = toFind[i];
+      //auto tmp = partition_point(x, pred, p);
+      auto tmp = bisecting_search<T, LinearSearchLength>(x, pred, impl::Halve{}, p);
+      if (!is_empty(tmp.m1)) sum += *get_begin(tmp.m1);
+    }
+    auto time = t.stop();
+    std::cout << "bisecting_search sum" << sum << ' ' << time << description << std::endl;
+  }
+
   void testPerformance() {
     typedef std::vector<SumType> V;
     V v(1000000);
     std::iota(v.begin(), v.end(), 5);
+
     auto r0 = make_range(v.begin(), v.end(), NotPresent{});
     auto r1 = make_range(v.begin(), NotPresent{}, v.size());
     auto r2 = make_range(v.begin(), v.end(), v.size());
@@ -1109,7 +1128,6 @@ public:
 
     //Warm up the cache
     sumOver(r0);
-
     performanceTest(r0, " Bounded Range");
     performanceTest(reverse(r0), " Reverse Bounded Range");
     performanceTest(r3, " Bounded wrapped Range");
@@ -1125,10 +1143,30 @@ public:
     performanceTestUnrolled(reverse(r5), " Reverse Bounded and Counted wrapped Range");
 
     performanceTestImpl(std::cref(v), "std::accumulate", "", [](std::reference_wrapper<V const> x) -> SumType { return std::accumulate(x.get().cbegin(), x.get().cend(), SumType(0)); });
+
+    V v2 = v;
+    std::random_shuffle(v2.begin(), v2.end());
+
+    performanceTestPartitionPoint<0>(r1, " Counted Range NoInline 0", NoInline{}, v2);
+    performanceTestPartitionPoint<0>(r1, " Counted Range Inline2 0", Inline2{}, v2);
+
+    performanceTestPartitionPoint<8>(r1, " Counted Range NoInline 8", NoInline{}, v2);
+    performanceTestPartitionPoint<8>(r1, " Counted Range Inline2 8", Inline2{}, v2);
+
+    performanceTestPartitionPoint<16>(r1, " Counted Range NoInline 16", NoInline{}, v2);
+    performanceTestPartitionPoint<16>(r1, " Counted Range Inline2 16", Inline2{}, v2);
+
+    performanceTestPartitionPoint<32>(r1, " Counted Range NoInline 32", NoInline{}, v2);
+    performanceTestPartitionPoint<32>(r1, " Counted Range Inline2 32", Inline2{}, v2);
+
+    performanceTestPartitionPoint<64>(r1, " Counted Range NoInline 64", NoInline{}, v2);
+    performanceTestPartitionPoint<64>(r1, " Counted Range Inline2 64", Inline2{}, v2);
+
    }
 
   template<typename Op>
   void forEachRangeRun(Op op) {
+    // Using arr
     op(make_range(begin, end, NotPresent{}));
     op(make_range(begin, NotPresent{}, count));
     op(make_range(begin, end, count));
@@ -1157,7 +1195,7 @@ public:
 
     template<typename R>
     void operator()(R r) const {
-      if(is_empty(r)) {
+      if (is_empty(r)) {
         {
           auto tmp = for_each(r, Summation<int>{0});
           assert(tmp.m0.count == 0);
@@ -1190,7 +1228,7 @@ public:
 
     template<typename R>
     void operator()(R x) const {
-      if(is_empty(x)) {
+      if (is_empty(x)) {
         {
           auto tmp = find_if(x, FindEqual<int>{5});
           assert(is_empty(tmp));
@@ -1241,7 +1279,7 @@ public:
 
     template<typename T>
     void operator()(T x) const {
-      if(is_empty(x)) {
+      if (is_empty(x)) {
         {
           auto tmp = count_if(x, FindLessThan<int>{10}, 0);
           assert(tmp == 0);
@@ -1418,7 +1456,7 @@ public:
       auto bounded_counted = make_range(x.begin(), x.end(), x.size());
       auto unbounded = make_range(x.begin(), NotPresent{}, NotPresent{});
 
-      auto op = Deref2Op<std::equal_to<int>>{std::equal_to<int>{}};
+      auto op = DerefOp<std::equal_to<int>>{{}};
       if (is_empty(r)) {
 	{
 	  auto tmp = find_mismatch(r, bounded, op);
@@ -1480,7 +1518,7 @@ public:
 
   void testFindAdjacentMismatchInput() {
     int arr[] = {1, 2, 3, 4, 5, 5, 6};
-    auto op = Deref2Op<std::less<int>>{std::less<int>{}};
+    auto op = DerefOp<std::less<int>>{{}};
     {
       auto x = find_adjacent_mismatch_input_non_empty(make_range(&arr[0], NotPresent{}, NotPresent{}), op);
       testAdjacentMismatchInputResult(x);
@@ -1515,17 +1553,20 @@ public:
 
   void testFindAdjacentMismatch() {
     int arr[] = {1, 2, 3, 4, 5, 5, 6};
-    auto op = Deref2Op<std::less<int>>{std::less<int>{}};
+    auto op = DerefOp<std::less<int>>{{}};
+    // Unbounded
     {
       auto x = find_adjacent_mismatch(make_range(&arr[0], NotPresent{}, NotPresent{}), op);
       testAdjacentMismatchResult(x);
     }
 
+    // Bounded (by End)
     {
       auto x = find_adjacent_mismatch(make_range(&arr[0], &arr[0] + 6, NotPresent{}), op);
       testAdjacentMismatchResult(x);
     }
 
+    // Counted
     {
       auto x = find_adjacent_mismatch(make_range(&arr[0], NotPresent{}, 6), op);
       testAdjacentMismatchResult(x);
@@ -1540,7 +1581,178 @@ public:
       auto x = find_adjacent_mismatch(make_range(&arr[0], &arr[0] + 6, 6), op, Inline4{});
       testAdjacentMismatchResult(x);
     }
+
+    // Test empty range
+    {
+      auto x = find_adjacent_mismatch(make_range(&arr[0], &arr[0], NotPresent{}), op);
+      assert(is_empty(x));
+    }
+    {
+      auto x = find_adjacent_mismatch(make_range(&arr[0], NotPresent{}, 0), op);
+      assert(is_empty(x));
+    }
+    {
+      auto x = find_adjacent_mismatch(make_range(&arr[0], &arr[0], 0), op);
+      assert(is_empty(x));
+    }
+
+    // Test no mismatch
+    {
+      auto x = find_adjacent_mismatch(make_range(&arr[0], &arr[5], NotPresent{}), op);
+      assert(is_empty(x));
+    }
+    {
+      auto x = find_adjacent_mismatch(make_range(&arr[0], NotPresent{}, 4), op);
+      assert(is_empty(x));
+    }
+    {
+      auto x = find_adjacent_mismatch(make_range(&arr[0], &arr[5], 4), op);
+      assert(is_empty(x));
+    }
   }
+
+  struct TestRelationPreservingSIR {
+    template<typename R>
+    void operator()(R r) const {
+      auto rel = DerefOp<std::less<int>>{{}};
+      assert(strictly_increasing_range(r, rel));
+      assert(strictly_increasing_range(r, rel, Inline4{}));
+      auto rel2 = DerefOp<std::greater<int>>{{}};
+      assert(is_empty(r) == strictly_increasing_range(r, rel2));
+      assert(is_empty(r) == strictly_increasing_range(r, rel2, Inline4{}));
+    }
+  };
+
+
+  template<InputIterator I>
+  struct input_iterator_basis {
+    typedef I state_type;
+    state_type position;
+    typedef ValueType<I> value_type;
+    typedef Reference<I> reference;
+    typedef Pointer<I> pointer;
+    typedef DifferenceType<I> difference_type;
+    typedef std::input_iterator_tag iterator_category;
+
+    friend constexpr ALWAYS_INLINE_HIDDEN
+    reference deref(input_iterator_basis const& x) { return *x.position; }
+
+    friend constexpr ALWAYS_INLINE_HIDDEN
+    input_iterator_basis successor(input_iterator_basis const& x) { return {range2::successor(x.position)}; }
+
+    friend constexpr ALWAYS_INLINE_HIDDEN
+    state_type state(input_iterator_basis const& x) { return x.position; }
+  };
+
+
+  void testRelationPreservingSIR() {
+    int arr[] = {0, 1, 2, 3, 4, 4, 5};
+    auto rel = DerefOp<std::less<int>>{{}};
+    assert(!strictly_increasing_range(make_range(&arr[0], &arr[0] + 7, NotPresent{}), rel));
+
+    // Test the input iterator path.
+    typedef iterator<input_iterator_basis<int*>> InputIter;
+    assert(strictly_increasing_range(make_range(InputIter{{&arr[0]}}, NotPresent{}, 5), rel));
+    assert(strictly_increasing_range(make_range(InputIter{{&arr[0]}}, NotPresent{}, 5), rel, NoInline{}));
+    assert(!strictly_increasing_range(make_range(InputIter{{&arr[0]}}, NotPresent{}, 7), rel));
+  }
+
+  struct TestIncreasingRange {
+    template<typename R>
+    void operator()(R r) const {
+      auto rel = DerefOp<std::less<int>>{{}};
+      assert(increasing_range(r, rel));
+      assert(increasing_range(r, rel, Inline4{}));
+      auto rel2 = DerefOp<std::greater<int>>{{}};
+      assert(is_empty(r) == increasing_range(r, rel2));
+      assert(is_empty(r) == increasing_range(r, rel2, Inline4{}));
+    }
+  };
+
+  void testIncreasingRange() {
+    int arr[] = {0, 1, 2, 3, 4, 4, 5};
+    auto rel = DerefOp<std::less<int>>{{}};
+    assert(increasing_range(make_range(&arr[0], &arr[0] + 7, NotPresent{}), rel));
+
+    // Test the input iterator path.
+    typedef iterator<input_iterator_basis<int*>> InputIter;
+    assert(increasing_range(make_range(InputIter{{&arr[0]}}, NotPresent{}, 5), rel));
+    assert(increasing_range(make_range(InputIter{{&arr[0]}}, NotPresent{}, 5), rel, NoInline{}));
+    assert(increasing_range(make_range(InputIter{{&arr[0]}}, NotPresent{}, 7), rel));
+  }
+
+  struct TestPartitioned {
+    template<typename R>
+    void operator()(R r) const {
+        // Parition is false before true
+      auto greaterThan = [](int x) { return x > 10; };
+      auto pred = DerefOp<decltype(greaterThan)>{greaterThan};
+      assert(partitioned(r, pred));
+      assert(partitioned(r, pred, NoInline{}));
+    }
+  };
+
+  void testPartitioned() {
+    int arr[] = {0, 1, 2, 3, 4, 3, 3};
+    auto cmp = [](int x) { return x > 3; };
+    auto pred = DerefOp<decltype(cmp)>{cmp};
+
+    assert(!partitioned(make_range(&arr[0], NotPresent{}, 7), pred));
+    assert(!partitioned(make_range(&arr[0], NotPresent{}, 7), pred, NoInline{}));
+
+    // Test the input iterator path.
+    typedef iterator<input_iterator_basis<int*>> InputIter;
+    assert(!partitioned(make_range(InputIter{{&arr[0]}}, NotPresent{}, 7), pred));
+    assert(!partitioned(make_range(InputIter{{&arr[0]}}, NotPresent{}, 7), pred, NoInline{}));
+    assert(partitioned(make_range(InputIter{{&arr[0]}}, NotPresent{}, 5), pred));
+  }
+
+  struct TestPartitionPoint {
+    template<typename R>
+    void operator()(R r) const {
+      auto greaterThan10 = [](int x) { return x > 10; };
+      auto pred = DerefOp<decltype(greaterThan10)>{greaterThan10};
+
+      auto greaterEqualCount = [](int x) { return x >= count; };
+      auto pred2 = DerefOp<decltype(greaterEqualCount)>{greaterEqualCount};
+      if (is_empty(r)) {
+	{
+	  auto tmp = partition_point(r, pred);
+	  assert(is_empty(tmp.m0));
+	  assert(is_empty(tmp.m1));
+	}
+	{
+	  auto tmp = partition_point(r, pred, NoInline{});
+	  assert(is_empty(tmp.m0));
+	  assert(is_empty(tmp.m1));
+	}
+      } else {
+	{
+	  auto tmp = partition_point(r, pred);
+	  assert(!is_empty(tmp.m0));
+	  assert(!is_empty(tmp.m1));
+	  assert(11 == *get_begin(tmp.m1));
+	}
+	{
+	  auto tmp = partition_point(r, pred, NoInline{});
+	  assert(!is_empty(tmp.m0));
+	  assert(!is_empty(tmp.m1));
+	  assert(11 == *get_begin(tmp.m1));
+	}
+
+	{
+	  auto tmp = partition_point(r, pred2);
+	  assert(!is_empty(tmp.m0));
+	  assert(is_empty(tmp.m1));
+	}
+	{
+	  auto tmp = partition_point(r, pred2, NoInline{});
+	  assert(!is_empty(tmp.m0));
+	  assert(is_empty(tmp.m1));
+	}
+      }    
+    }
+  };
 
 } // unnamed namespace
 } // namespace range2
@@ -1577,8 +1789,6 @@ int main() {
   testSplitAt();
   testJoin();
 
-  testPerformance();
-
   testIterator();
   testReversedIterator();
   testSkipIterator();
@@ -1596,4 +1806,13 @@ int main() {
   forEachRangeRun(TestFindMismatch{});
   testFindAdjacentMismatchInput();
   testFindAdjacentMismatch();
+  forEachRangeRun(TestRelationPreservingSIR{});
+  testRelationPreservingSIR();
+  forEachRangeRun(TestIncreasingRange{});
+  testIncreasingRange();
+  forEachRangeRun(TestPartitioned{});
+  testPartitioned();
+  forEachRangeRun(TestPartitionPoint{});
+
+  testPerformance();
 }

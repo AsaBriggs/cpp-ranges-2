@@ -59,7 +59,7 @@ template<InputIterator I>
 ALWAYS_INLINE_HIDDEN
 I forwardByN(I x, DifferenceType<I> n) {
   // n >= 0
-  while (n) {
+  while (decltype(n){0} != n) {
     --n, ++x;
   }
   return x;
@@ -69,7 +69,7 @@ template<BidirectionalIterator I>
 ALWAYS_INLINE_HIDDEN
 I backwardByN(I x, DifferenceType<I> n) {
   // n <= 0
-  while (n) {
+  while (decltype(n){0} != n) {
     ++n, --x;
   }
   return x;

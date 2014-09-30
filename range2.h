@@ -139,6 +139,14 @@ struct GenerateDerivedComparisonOperations<Present> : std::true_type {};
 template<typename Iterator, typename End=NotPresent, typename Count=NotPresent>
 struct TYPE_DEFAULT_VISIBILITY Range;
 
+
+template<typename T>
+struct GetEnd;
+
+template<typename Iterator, typename End, typename Count>
+struct GetEnd<Range<Iterator, End, Count>> : End {};
+
+
 template<typename T>
 struct TYPE_HIDDEN_VISIBILITY IsABoundedRange_Impl : std::false_type {};
 
@@ -181,6 +189,11 @@ using RangeDifferenceType = typename RangeIteratorTraits<T>::difference_type;
 
 template<typename T>
 using RangeIteratorCategory = typename std::iterator_traits<RangeIterator<T>>::iterator_category;
+
+template<typename Range>
+ALWAYS_INLINE_HIDDEN RangeIteratorCategory<Range> get_category(Range const&) {
+  return RangeIteratorCategory<Range>{};
+}
 
 template<typename T>
 struct TYPE_HIDDEN_VISIBILITY RepeatableRange : std::is_convertible<RangeIteratorCategory<T>, std::forward_iterator_tag> {};
@@ -476,7 +489,7 @@ typename std::enable_if<CanAddEndInLinearTime<Range<Iterator, NotPresent, Count>
 add_linear_time_end(Range<Iterator, NotPresent, Count> const& x) {
   auto tmp = x;
   DifferenceType<Iterator> count = 0;
-  while(!is_empty(tmp)) {
+  while (!is_empty(tmp)) {
     tmp = next(tmp);
     ++count;
   }
@@ -558,7 +571,7 @@ ALWAYS_INLINE_HIDDEN typename std::enable_if<CanAddCountInLinearTime<Range<Itera
 add_linear_time_count(Range<Iterator, End, NotPresent> const& x) {
   auto tmp = x;
   DifferenceType<Iterator> count = 0;
-  while(!is_empty(tmp)) {
+  while (!is_empty(tmp)) {
     tmp = next(tmp);
     ++count;
   }

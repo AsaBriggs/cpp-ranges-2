@@ -1103,7 +1103,8 @@ public:
     SumType s = 0;
     auto op = [&s](SumType y) { return s < y; };
     auto pred = make_derefop(op);
-    for (int i=0; i < toFind.size(); ++i) {
+    auto toFindSize = toFind.size();
+    for (int i=0; i < toFindSize; ++i) {
       s = toFind[i];
       //auto tmp = partition_point(x, pred, p);
       auto tmp = bisecting_search<T, LinearSearchLength>(x, pred, impl::Halve{}, p);
@@ -1754,6 +1755,62 @@ public:
     }
   };
 
+  // Also tests lower and upper bound
+  void testEquivalentRange() {
+    typedef int Value;
+    typedef std::vector<Value> Vec;
+    constexpr Value equal_value = 101;
+    Vec prefix(equal_value-1);
+    std::iota(prefix.begin(), prefix.end(), 0);
+    Vec postfix(equal_value-1);
+    std::iota(postfix.begin(), postfix.end(), equal_value + 1);
+    Vec eq_range(100, equal_value);
+    for (int i = 0; i <= prefix.size(); ++i ) {
+      for (int j = 0; j <= eq_range.size(); ++j) {
+        for (int k = 0; k <= postfix.size(); ++k) {
+	  Vec toSearch;
+	  toSearch.reserve(i+j+k);
+          toSearch.insert(toSearch.end(), &prefix[0], &prefix[0] + i);
+	  toSearch.insert(toSearch.end(), &eq_range[0], &eq_range[0] + j);
+	  toSearch.insert(toSearch.end(), &postfix[0], &postfix[0] + k);
+
+	  {
+            auto range0 = make_range(std::begin(toSearch), std::end(toSearch), NotPresent{});
+            auto tmp0 = equivalent_range(range0, std::less<Value>{}, equal_value);
+
+  	    assert(std::begin(toSearch) == get_begin(tmp0.m0));
+	    assert(std::begin(toSearch) + i == get_end(tmp0.m0));
+	    assert(i == get_count(tmp0.m0));
+
+	    assert(std::begin(toSearch) + i == get_begin(tmp0.m1));
+	    assert(std::begin(toSearch) + i + j == get_end(tmp0.m1));
+	    assert(j == get_count(tmp0.m1));
+
+	    assert(std::begin(toSearch) + i + j == get_begin(tmp0.m2));
+	    assert(k == get_count(tmp0.m2));
+	    assert(get_end(range0) == get_end(tmp0.m2));
+	  }
+	  {
+            auto range1 = make_range(std::begin(toSearch), std::end(toSearch), toSearch.size());
+            auto tmp1 = equivalent_range(range1, std::less<Value>{}, equal_value);
+
+	    assert(std::begin(toSearch) == get_begin(tmp1.m0));
+	    assert(std::begin(toSearch) + i == get_end(tmp1.m0));
+	    assert(i == get_count(tmp1.m0));
+
+	    assert(std::begin(toSearch) + i == get_begin(tmp1.m1));
+	    assert(std::begin(toSearch) + i + j == get_end(tmp1.m1));
+	    assert(j == get_count(tmp1.m1));
+
+	    assert(std::begin(toSearch) + i + j == get_begin(tmp1.m2));
+	    assert(k == get_count(tmp1.m2));
+	    assert(get_end(range1) == get_end(tmp1.m2));
+	  }
+	}
+      }
+    }
+  }
+
 } // unnamed namespace
 } // namespace range2
 
@@ -1813,6 +1870,7 @@ int main() {
   forEachRangeRun(TestPartitioned{});
   testPartitioned();
   forEachRangeRun(TestPartitionPoint{});
+  testEquivalentRange();
 
   testPerformance();
 }

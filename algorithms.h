@@ -483,11 +483,14 @@ ALWAYS_INLINE_HIDDEN bool partitioned(Range r, Rel rel) {
 
 namespace impl {
 
-struct TYPE_HIDDEN_VISIBILITY Halve {
+template<unsigned int Divisor>
+struct TYPE_HIDDEN_VISIBILITY Divide {
   // Precondition x > 0; postcondition 0 <= returnValue < x
   template<typename T>
-  ALWAYS_INLINE_HIDDEN T operator()(T x) const { return x/2; }
+  ALWAYS_INLINE_HIDDEN T operator()(T x) const { return x/Divisor; }
 };
+
+typedef Divide<2> Halve;
 
 } // namespace impl
 
@@ -560,8 +563,8 @@ struct TYPE_HIDDEN_VISIBILITY upper_bound_pred {
 } // namespace impl
 
 template<typename Range, typename Rel, typename InliningPreferences>
-ALWAYS_INLINE_HIDDEN auto lower_bound_predicate_impl(Range r, Rel rel, RangeValue<Range> const& a, InliningPreferences p) -> decltype ( parition_point_impl(r, make_derefop(impl::lower_bound_pred<RangeValue<Range>, Rel>{a, rel}), p) ) {
-  return parition_point_impl(r, make_derefop(impl::lower_bound_pred<RangeValue<Range>, Rel>{a, rel}), p);
+ALWAYS_INLINE_HIDDEN auto lower_bound_predicate_impl(Range r, Rel rel, RangeValue<Range> const& a, InliningPreferences p) -> decltype ( partition_point_impl(r, make_derefop(impl::lower_bound_pred<RangeValue<Range>, Rel>{a, rel}), p) ) {
+  return partition_point_impl(r, make_derefop(impl::lower_bound_pred<RangeValue<Range>, Rel>{a, rel}), p);
 }
 
 template<typename Range, typename Rel, typename InliningPreferences>
@@ -576,8 +579,8 @@ ALWAYS_INLINE_HIDDEN auto lower_bound_predicate(Range r, Rel rel, RangeValue<Ran
 
 
 template<typename Range, typename Rel, typename InliningPreferences>
-ALWAYS_INLINE_HIDDEN auto upper_bound_predicate_impl(Range r, Rel rel, RangeValue<Range> const& a, InliningPreferences p) -> decltype ( parition_point_impl(r, make_derefop(impl::upper_bound_pred<RangeValue<Range>, Rel>{a, rel})) ){
-  return parition_point_impl(r, make_derefop(impl::upper_bound_pred<RangeValue<Range>, Rel>{a, rel}));
+ALWAYS_INLINE_HIDDEN auto upper_bound_predicate_impl(Range r, Rel rel, RangeValue<Range> const& a, InliningPreferences p) -> decltype ( partition_point_impl(r, make_derefop(impl::upper_bound_pred<RangeValue<Range>, Rel>{a, rel}), p) ){
+  return partition_point_impl(r, make_derefop(impl::upper_bound_pred<RangeValue<Range>, Rel>{a, rel}), p);
 }
 
 template<typename Range, typename Rel, typename InliningPreferences>
@@ -589,6 +592,51 @@ template<typename Range, typename Rel>
 ALWAYS_INLINE_HIDDEN auto upper_bound_predicate(Range r, Rel rel, RangeValue<Range> const& a) -> decltype( upper_bound_predicate_impl(add_linear_time_count(r), rel, a, NoInline{}) ) {
   return upper_bound_predicate_impl(add_linear_time_count(r), rel, a, NoInline{});
 }
+
+template<typename Rng, typename Rel, typename BisectionOperation, typename InliningPreferences>
+ALWAYS_INLINE_HIDDEN triple<Range<RangeIterator<Rng>, Present, Present>, Range<RangeIterator<Rng>, Present, Present>, Range<RangeIterator<Rng>, typename GetEnd<Rng>::type, Present>>
+equivalent_range_impl(Rng r, Rel rel, RangeValue<Rng> const& a, BisectionOperation bo, InliningPreferences p) {
+  auto iter = get_begin(r);
+  auto n = get_count(r);
+  auto lhsN = decltype(n)(0);
+
+  while (decltype(n){0} != n) {
+    auto h = bo(n);
+    auto m = range2::advance(iter, h);
+    if (rel(*m, a)) {
+      lhsN = lhsN + h + 1;
+      iter = successor(m);
+      n =  n - (h + 1);
+    } else if (rel(a, *m)) {
+      // m is greater than the equivalent range, so shrink the search range.
+      n = h;
+    } else {
+      // m is somewhere in the middle of the equivalent range
+      auto lower_bound = lower_bound_predicate_impl(make_range(iter, NotPresent{}, n), rel, a, p);
+      auto upper_bound = upper_bound_predicate_impl(lower_bound.m1, rel, a, p);
+
+      return make_triple(make_range(get_begin(r), get_begin(lower_bound.m1), get_count(lower_bound.m0) + lhsN),
+			 upper_bound.m0,
+			 make_range(get_begin(upper_bound.m1), get_end(r), get_count(r) - get_count(upper_bound.m0) - get_count(lower_bound.m0) - lhsN));
+    }
+  }
+  return make_triple(make_range(get_begin(r), iter, lhsN), make_range(iter, iter, 0), make_range(iter, get_end(r), get_count(r) - lhsN));
+}
+
+template<typename Range, typename Rel, typename InliningPreferences>
+ALWAYS_INLINE_HIDDEN auto equivalent_range(Range r, Rel rel, RangeValue<Range> const& a, InliningPreferences p) -> decltype( equivalent_range_impl(add_linear_time_count(r), rel, a, impl::Halve{}, p) ) {
+  return equivalent_range_impl(add_linear_time_count(r), rel, a, impl::Halve{}, p);
+}
+
+template<typename Range, typename Rel>
+ALWAYS_INLINE_HIDDEN auto equivalent_range(Range r, Rel rel, RangeValue<Range> const& a) -> decltype( equivalent_range_impl(add_linear_time_count(r), rel, a, impl::Halve{}, NoInline{}) ) {
+  return equivalent_range_impl(add_linear_time_count(r), rel, a, impl::Halve{}, NoInline{});
+}
+
+
+
+
+
 
 
 } // namespace range2

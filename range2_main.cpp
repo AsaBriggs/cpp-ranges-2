@@ -1245,7 +1245,7 @@ public:
         {
           auto tmp = find_if(x, FindEqual<int>{-1}, Inline4{});
           assert(is_empty(tmp));
-	}
+        }
       } else {
         {
           auto tmp = find_if(x, FindEqual<int>{5});
@@ -1264,7 +1264,7 @@ public:
         {
           auto tmp = find_if(x, FindEqual<int>{-1}, Inline4{});
           assert(is_empty(tmp));
-	}
+        }
       }
     }
   };
@@ -1296,7 +1296,7 @@ public:
         {
           auto tmp = count_if(x, FindLessThan<int>{20}, 5);
           assert(tmp == 5);
-	}
+        }
       } else {
         {
           auto tmp = count_if(x, FindLessThan<int>{10}, 0);
@@ -1313,7 +1313,7 @@ public:
         {
           auto tmp = count_if(x, FindLessThan<int>{20}, 5);
           assert(tmp == 25);
-	}
+        }
       }
     }
   };
@@ -1333,27 +1333,27 @@ public:
     template<typename R>
     void operator()(R r) const {
       if (is_empty(r)) {
-	{
-	  auto tmp = reduce(r, Add{}, Deref{}, RangeValue<R>(0));
-	  assert(0 == tmp.m0);
-	  assert(is_empty(tmp.m1));
-	}
-	{
-	  auto tmp = reduce(r, Add{}, Deref{}, RangeValue<R>(0), Inline4{});
-	  assert(0 == tmp.m0);
-	  assert(is_empty(tmp.m1));
-	}
+        {
+          auto tmp = reduce(r, Add{}, Deref{}, RangeValue<R>(0));
+          assert(0 == tmp.m0);
+          assert(is_empty(tmp.m1));
+        }
+        {
+          auto tmp = reduce(r, Add{}, Deref{}, RangeValue<R>(0), Inline4{});
+          assert(0 == tmp.m0);
+          assert(is_empty(tmp.m1));
+        }
       } else {
-	{
-	  auto tmp = reduce(r, Add{}, Deref{}, RangeValue<R>(0));
-	  assert(39*20 == tmp.m0);
-	  assert(is_empty(tmp.m1));
-	}
-	{
-	  auto tmp = reduce(r, Add{}, Deref{}, RangeValue<R>(0), Inline4{});
-	  assert(39*20 == tmp.m0);
-	  assert(is_empty(tmp.m1));
-	}
+        {
+          auto tmp = reduce(r, Add{}, Deref{}, RangeValue<R>(0));
+          assert(39*20 == tmp.m0);
+          assert(is_empty(tmp.m1));
+        }
+        {
+          auto tmp = reduce(r, Add{}, Deref{}, RangeValue<R>(0), Inline4{});
+          assert(39*20 == tmp.m0);
+          assert(is_empty(tmp.m1));
+        }
       }
     }
   };
@@ -1362,18 +1362,18 @@ public:
     template<typename R>
     void operator()(R r) const {
       if (is_empty(r)) {
-	// Can't test empty ranges
+        // Can't test empty ranges
       } else {
-	{
-	  auto tmp = reduce_nonempty(r, Add{}, Deref{});
-	  assert(39*20 == tmp.m0);
-	  assert(is_empty(tmp.m1));
-	}
-	{
-	  auto tmp = reduce_nonempty(r, Add{}, Deref{}, Inline4{});
-	  assert(39*20 == tmp.m0);
-	  assert(is_empty(tmp.m1));
-	}
+        {
+          auto tmp = reduce_nonempty(r, Add{}, Deref{});
+          assert(39*20 == tmp.m0);
+          assert(is_empty(tmp.m1));
+        }
+        {
+          auto tmp = reduce_nonempty(r, Add{}, Deref{}, Inline4{});
+          assert(39*20 == tmp.m0);
+          assert(is_empty(tmp.m1));
+        }
       }
     }
   };
@@ -1382,27 +1382,27 @@ public:
     template<typename R>
     void operator()(R r) const {
       if (is_empty(r)) {
-	{
-	  auto tmp = reduce_nonzeroes(r, Add{}, Deref{}, RangeValue<R>(0));
-	  assert(0 == tmp.m0);
-	  assert(is_empty(tmp.m1));
-	}
-	{
-	  auto tmp = reduce_nonzeroes(r, Add{}, Deref{}, RangeValue<R>(0), Inline4{});
-	  assert(0 == tmp.m0);
-	  assert(is_empty(tmp.m1));
-	}
+        {
+          auto tmp = reduce_nonzeroes(r, Add{}, Deref{}, RangeValue<R>(0));
+          assert(0 == tmp.m0);
+          assert(is_empty(tmp.m1));
+        }
+        {
+          auto tmp = reduce_nonzeroes(r, Add{}, Deref{}, RangeValue<R>(0), Inline4{});
+          assert(0 == tmp.m0);
+          assert(is_empty(tmp.m1));
+        }
       } else {
-	{
-	  auto tmp = reduce_nonzeroes(r, Add{}, Deref{}, RangeValue<R>(0));
-	  assert(39*20 == tmp.m0);
-	  assert(is_empty(tmp.m1));
-	}
-	{
-	  auto tmp = reduce_nonzeroes(r, Add{}, Deref{}, RangeValue<R>(0), Inline4{});
-	  assert(39*20 == tmp.m0);
-	  assert(is_empty(tmp.m1));
-	}
+        {
+          auto tmp = reduce_nonzeroes(r, Add{}, Deref{}, RangeValue<R>(0));
+          assert(39*20 == tmp.m0);
+          assert(is_empty(tmp.m1));
+        }
+        {
+          auto tmp = reduce_nonzeroes(r, Add{}, Deref{}, RangeValue<R>(0), Inline4{});
+          assert(39*20 == tmp.m0);
+          assert(is_empty(tmp.m1));
+        }
       }
     }
   };
@@ -1421,14 +1421,14 @@ public:
     struct FindOp {
       template<typename R0, typename R1, typename Op>
       auto operator()(R0 r0, R1 r1, Op op) -> decltype( find_mismatch(r0, r1, op) ) {
-	return find_mismatch(r0, r1, op);
+        return find_mismatch(r0, r1, op);
       }
     };
 
     struct FindOpInlinePreferences {
       template<typename R0, typename R1, typename Op>
       auto operator()(R0 r0, R1 r1, Op op) -> decltype( find_mismatch(r0, r1, op) ) {
-	return find_mismatch(r0, r1, op, Inline4{});
+        return find_mismatch(r0, r1, op, Inline4{});
       }
     };
 
@@ -1459,53 +1459,53 @@ public:
 
       auto op = DerefOp<std::equal_to<int>>{{}};
       if (is_empty(r)) {
-	{
-	  auto tmp = find_mismatch(r, bounded, op);
-	  assert(is_empty(tmp.m0));
-	  assert(!is_empty(tmp.m1));
-	  assert(get_begin(tmp.m1) == x.begin());
-	  assert(get_end(tmp.m1) == x.end());
-	}
-	{
-	  auto tmp = find_mismatch(r, counted, op);
-	  assert(is_empty(tmp.m0));
-	  assert(!is_empty(tmp.m1));
-	  assert(get_begin(tmp.m1) == x.begin());
-	  assert(get_count(tmp.m1) == x.size());
-	}
-	{
-	  auto tmp = find_mismatch(r, bounded_counted, op);
-	  assert(is_empty(tmp.m0));
-	  assert(!is_empty(tmp.m1));
-	  assert(get_begin(tmp.m1) == x.begin());
-	  assert(get_end(tmp.m1) == x.end());
-	  assert(get_count(tmp.m1) == x.size());
-	}
-	{
-	  auto tmp = find_mismatch(r, unbounded, op);
-	  assert(is_empty(tmp.m0));
-	  assert(!is_empty(tmp.m1));
-	  assert(get_begin(tmp.m1) == x.begin());
-	}
+        {
+          auto tmp = find_mismatch(r, bounded, op);
+          assert(is_empty(tmp.m0));
+          assert(!is_empty(tmp.m1));
+          assert(get_begin(tmp.m1) == x.begin());
+          assert(get_end(tmp.m1) == x.end());
+        }
+        {
+          auto tmp = find_mismatch(r, counted, op);
+          assert(is_empty(tmp.m0));
+          assert(!is_empty(tmp.m1));
+          assert(get_begin(tmp.m1) == x.begin());
+          assert(get_count(tmp.m1) == x.size());
+        }
+        {
+          auto tmp = find_mismatch(r, bounded_counted, op);
+          assert(is_empty(tmp.m0));
+          assert(!is_empty(tmp.m1));
+          assert(get_begin(tmp.m1) == x.begin());
+          assert(get_end(tmp.m1) == x.end());
+          assert(get_count(tmp.m1) == x.size());
+        }
+        {
+          auto tmp = find_mismatch(r, unbounded, op);
+          assert(is_empty(tmp.m0));
+          assert(!is_empty(tmp.m1));
+          assert(get_begin(tmp.m1) == x.begin());
+        }
       } else {
-	testNonEmpties(r, bounded, op);
-	testNonEmpties(r, counted, op);
-	testNonEmpties(r, bounded_counted, op);
+        testNonEmpties(r, bounded, op);
+        testNonEmpties(r, counted, op);
+        testNonEmpties(r, bounded_counted, op);
 
-	{
-	  auto tmp = find_mismatch(r, unbounded, op);
-	  assert(is_empty(tmp.m0));
-	  testBeginR1IsEndR0(tmp.m0, r);
-	  // unbounded range is never empty.
-	  assert(!is_empty(tmp.m1));
-	  assert(get_begin(tmp.m1) == x.end());
-	}
-	auto y = x;
-	y[10]=y[10]+1;
-	auto tmp = find_mismatch(r, make_range(y.begin(), y.end(), y.size()), op);
-	assert(!is_empty(tmp.m0));
-	assert(!is_empty(tmp.m1));
-	assert(y.begin() + 10 == get_begin(tmp.m1));
+        {
+          auto tmp = find_mismatch(r, unbounded, op);
+          assert(is_empty(tmp.m0));
+          testBeginR1IsEndR0(tmp.m0, r);
+          // unbounded range is never empty.
+          assert(!is_empty(tmp.m1));
+          assert(get_begin(tmp.m1) == x.end());
+        }
+        auto y = x;
+        y[10]=y[10]+1;
+        auto tmp = find_mismatch(r, make_range(y.begin(), y.end(), y.size()), op);
+        assert(!is_empty(tmp.m0));
+        assert(!is_empty(tmp.m1));
+        assert(y.begin() + 10 == get_begin(tmp.m1));
       }
     }
   };
@@ -1717,40 +1717,40 @@ public:
       auto greaterEqualCount = [](int x) { return x >= count; };
       auto pred2 = DerefOp<decltype(greaterEqualCount)>{greaterEqualCount};
       if (is_empty(r)) {
-	{
-	  auto tmp = partition_point(r, pred);
-	  assert(is_empty(tmp.m0));
-	  assert(is_empty(tmp.m1));
-	}
-	{
-	  auto tmp = partition_point(r, pred, NoInline{});
-	  assert(is_empty(tmp.m0));
-	  assert(is_empty(tmp.m1));
-	}
+        {
+          auto tmp = partition_point(r, pred);
+          assert(is_empty(tmp.m0));
+          assert(is_empty(tmp.m1));
+        }
+        {
+          auto tmp = partition_point(r, pred, NoInline{});
+          assert(is_empty(tmp.m0));
+          assert(is_empty(tmp.m1));
+        }
       } else {
-	{
-	  auto tmp = partition_point(r, pred);
-	  assert(!is_empty(tmp.m0));
-	  assert(!is_empty(tmp.m1));
-	  assert(11 == *get_begin(tmp.m1));
-	}
-	{
-	  auto tmp = partition_point(r, pred, NoInline{});
-	  assert(!is_empty(tmp.m0));
-	  assert(!is_empty(tmp.m1));
-	  assert(11 == *get_begin(tmp.m1));
-	}
+        {
+          auto tmp = partition_point(r, pred);
+          assert(!is_empty(tmp.m0));
+          assert(!is_empty(tmp.m1));
+          assert(11 == *get_begin(tmp.m1));
+        }
+        {
+          auto tmp = partition_point(r, pred, NoInline{});
+          assert(!is_empty(tmp.m0));
+          assert(!is_empty(tmp.m1));
+          assert(11 == *get_begin(tmp.m1));
+        }
 
-	{
-	  auto tmp = partition_point(r, pred2);
-	  assert(!is_empty(tmp.m0));
-	  assert(is_empty(tmp.m1));
-	}
-	{
-	  auto tmp = partition_point(r, pred2, NoInline{});
-	  assert(!is_empty(tmp.m0));
-	  assert(is_empty(tmp.m1));
-	}
+        {
+          auto tmp = partition_point(r, pred2);
+          assert(!is_empty(tmp.m0));
+          assert(is_empty(tmp.m1));
+        }
+        {
+          auto tmp = partition_point(r, pred2, NoInline{});
+          assert(!is_empty(tmp.m0));
+          assert(is_empty(tmp.m1));
+        }
       }    
     }
   };
@@ -1768,49 +1768,172 @@ public:
     for (int i = 0; i <= prefix.size(); ++i ) {
       for (int j = 0; j <= eq_range.size(); ++j) {
         for (int k = 0; k <= postfix.size(); ++k) {
-	  Vec toSearch;
-	  toSearch.reserve(i+j+k);
+          Vec toSearch;
+          toSearch.reserve(i+j+k);
           toSearch.insert(toSearch.end(), &prefix[0], &prefix[0] + i);
-	  toSearch.insert(toSearch.end(), &eq_range[0], &eq_range[0] + j);
-	  toSearch.insert(toSearch.end(), &postfix[0], &postfix[0] + k);
+          toSearch.insert(toSearch.end(), &eq_range[0], &eq_range[0] + j);
+          toSearch.insert(toSearch.end(), &postfix[0], &postfix[0] + k);
 
-	  {
+          {
             auto range0 = make_range(std::begin(toSearch), std::end(toSearch), NotPresent{});
             auto tmp0 = equivalent_range(range0, std::less<Value>{}, equal_value);
 
-  	    assert(std::begin(toSearch) == get_begin(tmp0.m0));
-	    assert(std::begin(toSearch) + i == get_end(tmp0.m0));
-	    assert(i == get_count(tmp0.m0));
+            assert(std::begin(toSearch) == get_begin(tmp0.m0));
+            assert(std::begin(toSearch) + i == get_end(tmp0.m0));
+            assert(i == get_count(tmp0.m0));
 
-	    assert(std::begin(toSearch) + i == get_begin(tmp0.m1));
-	    assert(std::begin(toSearch) + i + j == get_end(tmp0.m1));
-	    assert(j == get_count(tmp0.m1));
+            assert(std::begin(toSearch) + i == get_begin(tmp0.m1));
+            assert(std::begin(toSearch) + i + j == get_end(tmp0.m1));
+            assert(j == get_count(tmp0.m1));
 
-	    assert(std::begin(toSearch) + i + j == get_begin(tmp0.m2));
-	    assert(k == get_count(tmp0.m2));
-	    assert(get_end(range0) == get_end(tmp0.m2));
-	  }
-	  {
+            assert(std::begin(toSearch) + i + j == get_begin(tmp0.m2));
+            assert(k == get_count(tmp0.m2));
+            assert(get_end(range0) == get_end(tmp0.m2));
+          }
+          {
             auto range1 = make_range(std::begin(toSearch), std::end(toSearch), toSearch.size());
             auto tmp1 = equivalent_range(range1, std::less<Value>{}, equal_value);
 
-	    assert(std::begin(toSearch) == get_begin(tmp1.m0));
-	    assert(std::begin(toSearch) + i == get_end(tmp1.m0));
-	    assert(i == get_count(tmp1.m0));
+            assert(std::begin(toSearch) == get_begin(tmp1.m0));
+            assert(std::begin(toSearch) + i == get_end(tmp1.m0));
+            assert(i == get_count(tmp1.m0));
 
-	    assert(std::begin(toSearch) + i == get_begin(tmp1.m1));
-	    assert(std::begin(toSearch) + i + j == get_end(tmp1.m1));
-	    assert(j == get_count(tmp1.m1));
+            assert(std::begin(toSearch) + i == get_begin(tmp1.m1));
+            assert(std::begin(toSearch) + i + j == get_end(tmp1.m1));
+            assert(j == get_count(tmp1.m1));
 
-	    assert(std::begin(toSearch) + i + j == get_begin(tmp1.m2));
-	    assert(k == get_count(tmp1.m2));
-	    assert(get_end(range1) == get_end(tmp1.m2));
-	  }
-	}
+            assert(std::begin(toSearch) + i + j == get_begin(tmp1.m2));
+            assert(k == get_count(tmp1.m2));
+            assert(get_end(range1) == get_end(tmp1.m2));
+          }
+        }
       }
     }
   }
 
+  struct TestLexicographicalEqual {
+    template<typename Iterator>
+    void operator()(Range<Iterator, NotPresent, NotPresent> r) const {
+      assert(!lexicographical_equal(r, next(r)));
+      assert(!lexicographical_equal(next(r), r));
+    }
+
+    template<typename R>
+    void operator()(R r) const {
+      assert(lexicographical_equal(r, r));
+      if (is_empty(r)) {
+        assert(!lexicographical_equal(r, make_range(begin, end, NotPresent{})));
+        assert(!lexicographical_equal(make_range(begin, end, NotPresent{}), r));
+      } else {
+        assert(lexicographical_equal(r, make_range(begin, end, NotPresent{})));
+        assert(lexicographical_equal(make_range(begin, end, NotPresent{}), r));
+
+        assert(!lexicographical_equal(r, next(r)));
+        assert(!lexicographical_equal(next(r), r));
+      }
+    }
+  };
+
+  template<typename Range0, typename Range1>
+  void testLexicographicalLessImpl(Range0 r0, Range1 r1) {
+    assert(lexicographical_less(r0, r1));
+    assert(!lexicographical_less(r1, r0));
+  }
+
+  void testLexicographicalLess() {
+    int arr[] = {0, 1, 2, 3, 4};
+    auto r = make_range(&arr[0], NotPresent{}, 5);
+    auto n = next(r);
+    testLexicographicalLessImpl(r, n);
+    testLexicographicalLessImpl(make_range(get_begin(r), NotPresent{}, get_count(r) - 1), r);
+  }
+
+  struct TestLexicographicalLess {
+    template<typename R>
+    void operator()(R r) const {
+      if (is_empty(r)) {
+        testLexicographicalLessImpl(r, make_range(begin, NotPresent{}, NotPresent{}));
+      } else {
+        assert(!lexicographical_less(r, r));
+        assert(!lexicographical_less(r, r, NoInline{}));
+
+        // Different lengths but values within next(r) are greater by one
+        testLexicographicalLessImpl(r, next(r));
+
+        // Different lengths
+        testLexicographicalLessImpl(make_range(get_begin(r), NotPresent{}, count-1), r);
+      }
+    }
+  };
+
+  struct TYPE_HIDDEN_VISIBILITY MoveOnlyType
+  {
+    static constexpr int NOT_SET_TAG = -1;
+
+    int tag;
+    ALWAYS_INLINE_HIDDEN MoveOnlyType() : tag(NOT_SET_TAG) {}
+
+    MoveOnlyType(MoveOnlyType const&) = delete;
+    MoveOnlyType& operator=(MoveOnlyType const&) = delete;
+
+    ALWAYS_INLINE_HIDDEN MoveOnlyType(MoveOnlyType&& x) : tag(x.tag) { x.tag = NOT_SET_TAG; };
+    ALWAYS_INLINE_HIDDEN MoveOnlyType& operator=(MoveOnlyType&& x) { tag = x.tag; x.tag = NOT_SET_TAG; return *this; }
+  };
+
+  struct TYPE_HIDDEN_VISIBILITY SwapOnlyType
+  {
+    int tag;
+    SwapOnlyType() : tag(0) {}
+    SwapOnlyType(SwapOnlyType const&) = delete;
+    SwapOnlyType(SwapOnlyType&&) = delete;
+    SwapOnlyType& operator=(SwapOnlyType const&) = delete;
+    SwapOnlyType& operator=(SwapOnlyType&&) = delete;
+
+    friend
+    void swap(SwapOnlyType& x, SwapOnlyType &y) {
+      using std::swap;
+      swap(x.tag, y.tag);
+    }
+  };
+
+  void testSteps() {
+    int arr[] = {0, 1, 2, 3};
+    auto r0 = make_range(&arr[0], NotPresent{}, 2);
+    auto r1 = make_range(&arr[0] + 2, NotPresent{}, 2);
+
+    auto i0 = r0;
+    auto o0 = r1;
+    CopyStep{}(i0, o0);
+    assert(i0 == next(r0));
+    assert(o0 == next(r1));
+    assert(*get_begin(r0) == *get_begin(r1));
+
+    MoveOnlyType arr2[2];
+    arr2[0].tag = 0;
+    arr2[1].tag = 1;
+    auto r2 = make_range(&arr2[0], NotPresent{}, 1);
+    auto r3 = make_range(&arr2[0] + 1, NotPresent{}, 1);
+    auto i1 = r2;
+    auto o1 = r3;
+    MoveStep{}(i1, o1);
+    assert(next(r2) == i1);
+    assert(next(r3) == o1);
+    assert(get_begin(r2)->tag == MoveOnlyType::NOT_SET_TAG);
+    assert(get_begin(r3)->tag == 0);
+
+    SwapOnlyType arr3[2];
+    arr3[0].tag = 1;
+    arr3[1].tag = 2;
+    auto r4 = make_range(&arr3[0], NotPresent{}, 1);
+    auto r5 = make_range(&arr3[0] + 1, NotPresent{}, 1);
+    auto i2 = r4;
+    auto o2 = r5;
+    SwapStep{}(i2, o2);
+    assert(next(r4) == i2);
+    assert(next(r5) == o2);
+    assert(get_begin(r4)->tag == 2);
+    assert(get_begin(r5)->tag == 1);
+  }
 } // unnamed namespace
 } // namespace range2
 
@@ -1871,6 +1994,13 @@ int main() {
   testPartitioned();
   forEachRangeRun(TestPartitionPoint{});
   testEquivalentRange();
+  forEachRangeRun(TestLexicographicalEqual{});
+  testLexicographicalLess();
+  forEachRangeRun(TestLexicographicalLess{});
+
+  testSteps();
 
   testPerformance();
+
+
 }

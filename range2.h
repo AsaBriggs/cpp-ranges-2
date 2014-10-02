@@ -352,7 +352,7 @@ constexpr ALWAYS_INLINE_HIDDEN
 bool operator< (Range<Iterator, End, Count> const& x, Range<Iterator, End, Count> const& y) {
   return (get_begin(x) < get_begin(y)) ||
          (!(get_begin(y) < get_begin(x)) && ((get_end(x) < get_end(y) ||
-					    (!(get_end(y) < get_end(x)) && (get_count(x) < get_count(y))))));
+              (!(get_end(y) < get_end(x)) && (get_count(x) < get_count(y))))));
 }
 
 template<typename Iterator, typename End, typename Count>

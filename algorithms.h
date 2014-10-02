@@ -10,6 +10,11 @@
 #include <cassert>
 #endif
 
+#ifndef INCLUDED_FUNCTIONAL
+#define INCLUDED_FUNCTIONAL
+#include <functional>
+#endif
+
 namespace range2 {
 
 struct TYPE_HIDDEN_VISIBILITY NoInline {};
@@ -78,6 +83,24 @@ struct TYPE_HIDDEN_VISIBILITY complement_converse
 };
 
 
+template<typename Op>
+// Requires BinaryOperation(Op)
+struct TYPE_HIDDEN_VISIBILITY equivalent
+{
+  Op op;
+
+  template<typename T0, typename T1>
+  // Requires input_type(Op, 0) == T1
+  // input_type(Op, 1) == T0
+  ALWAYS_INLINE_HIDDEN auto operator()(T0&& x, T1&& y) -> decltype( !op(x, y) && !op(y, x) ) {
+    return !op(x, y) && !op(y, x);
+  }
+};
+    
+template<typename Op>
+ALWAYS_INLINE_HIDDEN equivalent<Op> make_equivalent(Op op) {
+    return {op};
+}
 
 template<typename Range, typename Op>
 // Requires input_type(Op, 0) == RangeIterator(Range)
@@ -616,8 +639,8 @@ equivalent_range_impl(Rng r, Rel rel, RangeValue<Rng> const& a, BisectionOperati
       auto upper_bound = upper_bound_predicate_impl(lower_bound.m1, rel, a, p);
 
       return make_triple(make_range(get_begin(r), get_begin(lower_bound.m1), get_count(lower_bound.m0) + lhsN),
-			 upper_bound.m0,
-			 make_range(get_begin(upper_bound.m1), get_end(r), get_count(r) - get_count(upper_bound.m0) - get_count(lower_bound.m0) - lhsN));
+       upper_bound.m0,
+       make_range(get_begin(upper_bound.m1), get_end(r), get_count(r) - get_count(upper_bound.m0) - get_count(lower_bound.m0) - lhsN));
     }
   }
   return make_triple(make_range(get_begin(r), iter, lhsN), make_range(iter, iter, 0), make_range(iter, get_end(r), get_count(r) - lhsN));
@@ -635,9 +658,149 @@ ALWAYS_INLINE_HIDDEN auto equivalent_range(Range r, Rel rel, RangeValue<Range> c
 
 
 
+template<typename Range0, typename Range1, typename Rel, typename InliningPreferences>
+ALWAYS_INLINE_HIDDEN bool lexicographical_equivalent_impl2(Range0 r0, Range1 r1, Rel rel, InliningPreferences p) {
+  auto tmp = find_mismatch_impl(r0, r1, rel, p);
+  return is_empty(tmp.m0) && is_empty(tmp.m1);
+}
+
+template<typename Range0, typename Range1, typename Rel, typename InliningPreferences>
+ALWAYS_INLINE_HIDDEN typename std::enable_if<IsACountedRange<Range0>::value && IsACountedRange<Range1>::value, bool>::type
+lexicographical_equivalent_impl(Range0 r0, Range1 r1, Rel rel, InliningPreferences p) {
+  if (get_count(r0) != get_count(r1)) {
+    return false ;
+  } else {
+    return lexicographical_equivalent_impl2(r0, r1, rel, p);
+  }
+}
+
+template<typename Range0, typename Range1, typename Rel, typename InliningPreferences>
+ALWAYS_INLINE_HIDDEN typename std::enable_if<!IsACountedRange<Range0>::value || !IsACountedRange<Range1>::value, bool>::type
+lexicographical_equivalent_impl(Range0 r0, Range1 r1, Rel rel, InliningPreferences p) {
+  return lexicographical_equivalent_impl2(r0, r1, rel, p);
+}
 
 
+template<typename Range0, typename Range1, typename Rel, typename InliningPreferences>
+ALWAYS_INLINE_HIDDEN bool lexicographical_equivalent(Range0 r0, Range1 r1, Rel rel, InliningPreferences p) {
+  return lexicographical_equivalent_impl(add_constant_time_count(r0), add_constant_time_count(r1), rel, p);
+}
 
+template<typename Range0, typename Range1, typename Rel>
+ALWAYS_INLINE_HIDDEN bool lexicographical_equivalent(Range0 r0, Range1 r1, Rel rel) {
+  return lexicographical_equivalent_impl(add_constant_time_count(r0), add_constant_time_count(r1), rel, NoInline{});
+}
+
+template<typename Range0, typename Range1, typename InliningPreferences>
+ALWAYS_INLINE_HIDDEN bool lexicographical_equal(Range0 r0, Range1 r1, InliningPreferences p) {
+  static_assert(std::is_same<RangeValue<Range0>, RangeValue<Range1>>::value, "Both ranges must have the same value type");
+  return lexicographical_equivalent(r0, r1, make_refefop(std::equal_to<RangeValue<Range0>>{}), p);
+}
+
+template<typename Range0, typename Range1>
+ALWAYS_INLINE_HIDDEN bool lexicographical_equal(Range0 r0, Range1 r1) {
+  static_assert(std::is_same<RangeValue<Range0>, RangeValue<Range1>>::value, "Both ranges must have the same value type");
+  return lexicographical_equivalent(r0, r1, make_derefop(std::equal_to<RangeValue<Range0>>{}));
+}
+
+
+template<typename Range0, typename Range1, typename Rel, typename InliningPreferences>
+ALWAYS_INLINE_HIDDEN bool lexicographical_compare_impl(Range0 r0, Range1 r1, Rel rel, InliningPreferences p) {
+  auto tmp = find_mismatch_impl(r0, r1, make_derefop(make_equivalent(rel)), p);
+  if (is_empty(tmp.m1)) {
+    return false;
+  } else if (is_empty(tmp.m0)) {
+    return true;
+  } else {
+    // Therefore *get_begin(tmp.m0) is not equivalent to *get_begin(tmp.m1).
+    return rel(*get_begin(tmp.m0), *get_begin(tmp.m1));
+  }
+}
+
+template<typename Range0, typename Range1, typename Rel, typename InliningPreferences>
+ALWAYS_INLINE_HIDDEN bool lexicographical_compare(Range0 r0, Range1 r1, Rel rel, InliningPreferences p) {
+  return lexicographical_compare_impl(add_constant_time_count(r0), add_constant_time_count(r1), rel, p);
+}
+
+template<typename Range0, typename Range1, typename Rel>
+ALWAYS_INLINE_HIDDEN bool lexicographical_compare(Range0 r0, Range1 r1, Rel rel) {
+  return lexicographical_compare_impl(add_constant_time_count(r0), add_constant_time_count(r1), rel, NoInline{});
+}
+
+
+template<typename Range0, typename Range1, typename InliningPreferences>
+ALWAYS_INLINE_HIDDEN bool lexicographical_less(Range0 r0, Range1 r1, InliningPreferences p) {
+  static_assert(std::is_same<RangeValue<Range0>, RangeValue<Range1>>::value, "Both ranges must have the same value type");
+  return lexicographical_compare(r0, r1, std::less<RangeValue<Range0>>{}, p);
+}
+
+template<typename Range0, typename Range1>
+ALWAYS_INLINE_HIDDEN bool lexicographical_less(Range0 r0, Range1 r1) {
+  static_assert(std::is_same<RangeValue<Range0>, RangeValue<Range1>>::value, "Both ranges must have the same value type");
+  return lexicographical_compare(r0, r1, std::less<RangeValue<Range0>>{});
+}
+
+struct TYPE_DEFAULT_VISIBILITY CopyStep
+{
+  template<typename I, typename O>
+  ALWAYS_INLINE_HIDDEN void operator()(I& i, O& o) const {
+    sink(get_begin(i), *get_begin(o));
+    i = next(i), o = next(o);
+  }
+};
+
+struct TYPE_DEFAULT_VISIBILITY MoveStep
+{
+  template<typename I, typename O>
+  ALWAYS_INLINE_HIDDEN void operator()(I& i, O& o) const {
+    sink(get_begin(o), std::move(*get_begin(i)));
+    i = next(i), o = next(o);
+  }
+};
+
+struct TYPE_DEFAULT_VISIBILITY SwapStep
+{
+  template<typename I, typename O>
+  ALWAYS_INLINE_HIDDEN void operator()(I& i, O& o) const {
+    using std::swap;
+    swap(*get_begin(i), *get_begin(o));
+    i = next(i), o = next(o);
+  }
+};
+
+
+template<typename R0, typename R1, typename Step, typename InliningPreferences>
+INLINE typename std::enable_if<IsABoundedRange<R0>::value && IsABoundedRange<R1>::value, pair<R0, R1> >::type
+visit_ranges(R0 r0, R1 r1, Step step, InliningPreferences p) {
+  while(!is_empty(r0) && !is_empty(r1)) step(r0, r1);
+  return make_pair(r0, r1);
+}
+
+template<typename R0, typename R1, typename Step, typename InliningPreferences>
+INLINE typename std::enable_if<IsABoundedRange<R0>::value && !IsABoundedRange<R1>::value, pair<R0, R1> >::type
+visit_ranges(R0 r0, R1 r1, Step step, InliningPreferences p) {
+  while(!is_empty(r0)) step(r0, r1);
+  return make_pair(r0, r1);
+}
+
+template<typename R0, typename R1, typename Step, typename InliningPreferences>
+INLINE typename std::enable_if<!IsABoundedRange<R0>::value && IsABoundedRange<R1>::value, pair<R0, R1> >::type
+visit_ranges(R0 r0, R1 r1, Step step, InliningPreferences p) {
+  while(!is_empty(r1)) step(r0, r1);
+  return make_pair(r0, r1);
+}
+
+template<typename R0, typename R1, typename Step, typename InliningPreferences>
+ALWAYS_INLINE_HIDDEN auto visit_ranges(R0 r0, R1 r1, Step step, InliningPreferences p) -> decltype ( visit_ranges_impl(add_constant_time_count(r0), add_constant_time_count(r1), step, p) ) {
+  static_assert(IsABoundedRange<R0>::value || IsABoundedRange<R1>::value, "One of the ranges must be bounded");
+  return visit_ranges_impl(add_constant_time_count(r0), add_constant_time_count(r1), step, p);
+}
+
+template<typename R0, typename R1, typename Step>
+ALWAYS_INLINE_HIDDEN auto visit_ranges(R0 r0, R1 r1, Step step) -> decltype ( visit_ranges_impl(add_constant_time_count(r0), add_constant_time_count(r1), step, NoInline{}) ) {
+  static_assert(IsABoundedRange<R0>::value || IsABoundedRange<R1>::value, "One of the ranges must be bounded");
+  return visit_ranges_impl(add_constant_time_count(r0), add_constant_time_count(r1), step, NoInline{});
+}
 
 } // namespace range2
 

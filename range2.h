@@ -148,13 +148,13 @@ struct GetEnd<Range<Iterator, End, Count>> : End {};
 
 
 template<typename T>
-struct TYPE_HIDDEN_VISIBILITY IsABoundedRange_Impl : std::false_type {};
+struct TYPE_HIDDEN_VISIBILITY IsAFiniteRange_Impl : std::false_type {};
 
 template<typename Iterator, typename End, typename Count>
-struct TYPE_HIDDEN_VISIBILITY IsABoundedRange_Impl <Range<Iterator, End, Count>> : std::integral_constant<bool, !std::is_same<End, NotPresent>::value || ! std::is_same<Count, NotPresent>::value> {};
+struct TYPE_HIDDEN_VISIBILITY IsAFiniteRange_Impl <Range<Iterator, End, Count>> : std::integral_constant<bool, !std::is_same<End, NotPresent>::value || ! std::is_same<Count, NotPresent>::value> {};
 
 template<typename T>
-using IsABoundedRange = IsABoundedRange_Impl<T>;
+using IsAFiniteRange = IsAFiniteRange_Impl<T>;
 
 
 template<typename T>
@@ -759,7 +759,7 @@ template<typename Iterator, typename End, typename Count>
 ALWAYS_INLINE_HIDDEN auto
 reverse(Range<Iterator, End, Count> const& x) -> decltype ( impl::reverse_impl<Range<Iterator, End, Count>>::apply(x) ) {
 
-  static_assert(IsABoundedRange<Range<Iterator, End, Count>>::value, "Must be a bounded range");
+  static_assert(IsAFiniteRange<Range<Iterator, End, Count>>::value, "Must be a bounded range");
 
   return impl::reverse_impl<Range<Iterator, End, Count>>::apply(x);
 }

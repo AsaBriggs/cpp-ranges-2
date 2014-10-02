@@ -409,8 +409,8 @@ public:
 
   template<typename R0, typename R1, typename R2>
   void checkBoundedness(R0 const&, pair<R1, R2> const&) {
-    static_assert(IsABoundedRange<R1>::value, "Must be a bounded range");
-    static_assert(IsABoundedRange<R0>::value == IsABoundedRange<R2>::value, "Boundedness must be equal");
+    static_assert(IsAFiniteRange<R1>::value, "Must be a bounded range");
+    static_assert(IsAFiniteRange<R0>::value == IsAFiniteRange<R2>::value, "Boundedness must be equal");
   }
 
   void testSplitAt() {
@@ -624,7 +624,7 @@ public:
 
   template<typename R0, typename R1, typename Result>
   void testJoinBoundedness(R0 const&, R1 const&, Result const&) {
-    static_assert(IsABoundedRange<R1>::value == IsABoundedRange<Result>::value, "Error");
+    static_assert(IsAFiniteRange<R1>::value == IsAFiniteRange<Result>::value, "Error");
   }
 
   template<typename R>

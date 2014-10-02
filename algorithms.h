@@ -153,7 +153,7 @@ for_each_impl(Range r, Op op, Inline4) {
 template<typename Range, typename Op, typename InliningPreferences>
 // Requires input_type(Op, 0) == RangeIterator(Range)
 ALWAYS_INLINE_HIDDEN auto for_each(Range r, Op op, InliningPreferences p) -> decltype( for_each_impl(add_constant_time_count(r), op, p) ) {
-  static_assert(IsABoundedRange<Range>::value, "Must be a bounded range");
+  static_assert(IsAFiniteRange<Range>::value, "Must be a finite range");
 
   return for_each_impl(add_constant_time_count(r), op, p);
 }
@@ -161,7 +161,7 @@ ALWAYS_INLINE_HIDDEN auto for_each(Range r, Op op, InliningPreferences p) -> dec
 template<typename Range, typename Op>
 // Requires input_type(Op, 0) == RangeIterator(Range)
 ALWAYS_INLINE_HIDDEN auto for_each(Range r, Op op) -> decltype( for_each_impl(add_constant_time_count(r), op, NoInline{}) ) {
-  static_assert(IsABoundedRange<Range>::value, "Must be a bounded range");
+  static_assert(IsAFiniteRange<Range>::value, "Must be a finite range");
 
   return for_each_impl(add_constant_time_count(r), op, NoInline{});
 }
@@ -305,7 +305,7 @@ ALWAYS_INLINE_HIDDEN auto reduce_nonzeroes(Range r, Op op, Func f, RangeValue<Ra
 
 
 template<typename Range0, typename Range1, typename Rel, typename InliningPreferences>
-INLINE typename std::enable_if<!IsABoundedRange<Range0>::value && !IsABoundedRange<Range1>::value, pair<Range0, Range1>>::type
+INLINE typename std::enable_if<!IsAFiniteRange<Range0>::value && !IsAFiniteRange<Range1>::value, pair<Range0, Range1>>::type
 find_mismatch_impl(Range0 r0, Range1 r1, Rel rel, InliningPreferences p) {
   auto iter0 = get_begin(r0);
   auto iter1 = get_begin(r1);
@@ -316,7 +316,7 @@ find_mismatch_impl(Range0 r0, Range1 r1, Rel rel, InliningPreferences p) {
 }
 
 template<typename Range0, typename Range1, typename Rel, typename InliningPreferences>
-INLINE typename std::enable_if<IsABoundedRange<Range0>::value && !IsABoundedRange<Range1>::value, pair<Range0, Range1>>::type
+INLINE typename std::enable_if<IsAFiniteRange<Range0>::value && !IsAFiniteRange<Range1>::value, pair<Range0, Range1>>::type
 find_mismatch_impl(Range0 r0, Range1 r1, Rel rel, InliningPreferences p) {
   auto iter1 = get_begin(r1);
   while (!is_empty(r0) && rel(get_begin(r0), iter1)) {
@@ -326,7 +326,7 @@ find_mismatch_impl(Range0 r0, Range1 r1, Rel rel, InliningPreferences p) {
 }
 
 template<typename Range0, typename Range1, typename Rel, typename InliningPreferences>
-INLINE typename std::enable_if<!IsABoundedRange<Range0>::value && IsABoundedRange<Range1>::value, pair<Range0, Range1>>::type
+INLINE typename std::enable_if<!IsAFiniteRange<Range0>::value && IsAFiniteRange<Range1>::value, pair<Range0, Range1>>::type
 find_mismatch_impl(Range0 r0, Range1 r1, Rel rel, InliningPreferences p) {
   auto iter0 = get_begin(r0);
   while (!is_empty(r1) && rel(iter0, get_begin(r1))) {
@@ -336,7 +336,7 @@ find_mismatch_impl(Range0 r0, Range1 r1, Rel rel, InliningPreferences p) {
 }
 
 template<typename Range0, typename Range1, typename Rel, typename InliningPreferences>
-INLINE typename std::enable_if<IsABoundedRange<Range0>::value && IsABoundedRange<Range1>::value && !(IsACountedRange<Range0>::value && IsACountedRange<Range1>::value), pair<Range0, Range1>>::type
+INLINE typename std::enable_if<IsAFiniteRange<Range0>::value && IsAFiniteRange<Range1>::value && !(IsACountedRange<Range0>::value && IsACountedRange<Range1>::value), pair<Range0, Range1>>::type
 find_mismatch_impl(Range0 r0, Range1 r1, Rel rel, InliningPreferences p) {
   while (!is_empty(r0) &&
          !is_empty(r1) &&
@@ -397,7 +397,7 @@ ALWAYS_INLINE_HIDDEN auto find_adjacent_mismatch_input_non_empty(Range r, Rel re
 
 
 template<typename Range, typename Rel, typename InliningPreferences>
-ALWAYS_INLINE_HIDDEN typename std::enable_if<!IsABoundedRange<Range>::value, Range>::type
+ALWAYS_INLINE_HIDDEN typename std::enable_if<!IsAFiniteRange<Range>::value, Range>::type
 find_adjacent_mismatch_impl(Range r, Rel rel, InliningPreferences p) {
   auto begin = get_begin(r);
   auto prev = begin;
@@ -409,7 +409,7 @@ find_adjacent_mismatch_impl(Range r, Rel rel, InliningPreferences p) {
 }
 
 template<typename Range, typename Rel, typename InliningPreferences>
-ALWAYS_INLINE_HIDDEN typename std::enable_if<IsABoundedRange<Range>::value && !IsACountedRange<Range>::value, Range>::type
+ALWAYS_INLINE_HIDDEN typename std::enable_if<IsAFiniteRange<Range>::value && !IsACountedRange<Range>::value, Range>::type
 find_adjacent_mismatch_impl(Range r, Rel rel, InliningPreferences p) {
   if (is_empty(r)) return r;
   auto begin = get_begin(r);
@@ -551,13 +551,13 @@ ALWAYS_INLINE_HIDDEN auto partition_point_impl(Range r, Pred pred, InliningPrefe
 
 template<typename Range, typename Pred, typename InliningPreferences>
 ALWAYS_INLINE_HIDDEN auto partition_point(Range r, Pred pred, InliningPreferences p) -> decltype( partition_point_impl(add_linear_time_count(r), pred, p) ) {
-  static_assert(IsABoundedRange<Range>::value, "Must be a bounded range to perform binary search");
+  static_assert(IsAFiniteRange<Range>::value, "Must be a finite range to perform binary search");
   return partition_point_impl(add_linear_time_count(r), pred, p);
 }
 
 template<typename Range, typename Pred>
 ALWAYS_INLINE_HIDDEN auto partition_point(Range r, Pred pred) -> decltype( partition_point_impl(add_linear_time_count(r), pred, NoInline{}) ) {
-  static_assert(IsABoundedRange<Range>::value, "Must be a bounded range to perform binary search");
+  static_assert(IsAFiniteRange<Range>::value, "Must be a finite range to perform binary search");
   return partition_point_impl(add_linear_time_count(r), pred, NoInline{});
 }
 
@@ -770,21 +770,21 @@ struct TYPE_DEFAULT_VISIBILITY SwapStep
 
 
 template<typename R0, typename R1, typename Step, typename InliningPreferences>
-INLINE typename std::enable_if<IsABoundedRange<R0>::value && IsABoundedRange<R1>::value, pair<R0, R1> >::type
+INLINE typename std::enable_if<IsAFiniteRange<R0>::value && IsAFiniteRange<R1>::value, pair<R0, R1> >::type
 visit_ranges(R0 r0, R1 r1, Step step, InliningPreferences p) {
   while(!is_empty(r0) && !is_empty(r1)) step(r0, r1);
   return make_pair(r0, r1);
 }
 
 template<typename R0, typename R1, typename Step, typename InliningPreferences>
-INLINE typename std::enable_if<IsABoundedRange<R0>::value && !IsABoundedRange<R1>::value, pair<R0, R1> >::type
+INLINE typename std::enable_if<IsAFiniteRange<R0>::value && !IsAFiniteRange<R1>::value, pair<R0, R1> >::type
 visit_ranges(R0 r0, R1 r1, Step step, InliningPreferences p) {
   while(!is_empty(r0)) step(r0, r1);
   return make_pair(r0, r1);
 }
 
 template<typename R0, typename R1, typename Step, typename InliningPreferences>
-INLINE typename std::enable_if<!IsABoundedRange<R0>::value && IsABoundedRange<R1>::value, pair<R0, R1> >::type
+INLINE typename std::enable_if<!IsAFiniteRange<R0>::value && IsAFiniteRange<R1>::value, pair<R0, R1> >::type
 visit_ranges(R0 r0, R1 r1, Step step, InliningPreferences p) {
   while(!is_empty(r1)) step(r0, r1);
   return make_pair(r0, r1);
@@ -792,13 +792,13 @@ visit_ranges(R0 r0, R1 r1, Step step, InliningPreferences p) {
 
 template<typename R0, typename R1, typename Step, typename InliningPreferences>
 ALWAYS_INLINE_HIDDEN auto visit_ranges(R0 r0, R1 r1, Step step, InliningPreferences p) -> decltype ( visit_ranges_impl(add_constant_time_count(r0), add_constant_time_count(r1), step, p) ) {
-  static_assert(IsABoundedRange<R0>::value || IsABoundedRange<R1>::value, "One of the ranges must be bounded");
+  static_assert(IsAFiniteRange<R0>::value || IsAFiniteRange<R1>::value, "One of the ranges must be finite");
   return visit_ranges_impl(add_constant_time_count(r0), add_constant_time_count(r1), step, p);
 }
 
 template<typename R0, typename R1, typename Step>
 ALWAYS_INLINE_HIDDEN auto visit_ranges(R0 r0, R1 r1, Step step) -> decltype ( visit_ranges_impl(add_constant_time_count(r0), add_constant_time_count(r1), step, NoInline{}) ) {
-  static_assert(IsABoundedRange<R0>::value || IsABoundedRange<R1>::value, "One of the ranges must be bounded");
+  static_assert(IsAFiniteRange<R0>::value || IsAFiniteRange<R1>::value, "One of the ranges must be finite");
   return visit_ranges_impl(add_constant_time_count(r0), add_constant_time_count(r1), step, NoInline{});
 }
 

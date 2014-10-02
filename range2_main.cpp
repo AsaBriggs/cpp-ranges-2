@@ -1897,13 +1897,14 @@ public:
   };
 
   void testSteps() {
-    int arr[] = {0, 1, 2, 3};
-    auto r0 = make_range(&arr[0], NotPresent{}, 2);
-    auto r1 = make_range(&arr[0] + 2, NotPresent{}, 2);
+    const int arri[] = {0, 1};
+    int arro[] = {2, 3};
+    auto r0 = make_range(&arri[0], NotPresent{}, 2);
+    auto r1 = make_range(&arro[0] + 2, NotPresent{}, 2);
 
     auto i0 = r0;
     auto o0 = r1;
-    CopyStep{}(i0, o0);
+    copy_step{}(i0, o0);
     assert(i0 == next(r0));
     assert(o0 == next(r1));
     assert(*get_begin(r0) == *get_begin(r1));
@@ -1915,7 +1916,7 @@ public:
     auto r3 = make_range(&arr2[0] + 1, NotPresent{}, 1);
     auto i1 = r2;
     auto o1 = r3;
-    MoveStep{}(i1, o1);
+    move_step{}(i1, o1);
     assert(next(r2) == i1);
     assert(next(r3) == o1);
     assert(get_begin(r2)->tag == MoveOnlyType::NOT_SET_TAG);
@@ -1928,11 +1929,76 @@ public:
     auto r5 = make_range(&arr3[0] + 1, NotPresent{}, 1);
     auto i2 = r4;
     auto o2 = r5;
-    SwapStep{}(i2, o2);
+    swap_step{}(i2, o2);
     assert(next(r4) == i2);
     assert(next(r5) == o2);
     assert(get_begin(r4)->tag == 2);
     assert(get_begin(r5)->tag == 1);
+  }
+
+  void testVisit2Ranges() {
+    const int zeroes[count] = {};
+    auto zeroesRange = make_range(&zeroes[0], NotPresent{}, count);
+    int arr[count] = {};
+    auto inputRange = make_range(begin, end, count);
+    auto outputRange = make_range(&arr[0], &arr[0] + count, count);
+    auto tmp = visit_2_ranges(inputRange, outputRange, copy_step{});
+    assert(is_empty(tmp.m0));
+    assert(end == get_begin(tmp.m0));
+    assert(end == get_end(tmp.m0));
+    assert(0 == get_count(tmp.m0));
+
+    assert(is_empty(tmp.m1));
+    assert(&arr[0]+count == get_begin(tmp.m1));
+    assert(&arr[0]+count == get_end(tmp.m1));
+    assert(0 == get_count(tmp.m1));
+    assert(lexicographical_equal(inputRange, outputRange));
+
+    visit_2_ranges(zeroesRange, outputRange, copy_step{});
+
+    assert(!lexicographical_equal(inputRange, outputRange));
+    auto tmp2 = visit_2_ranges(inputRange, make_range(&arr[0], NotPresent{}, NotPresent{}), copy_step{});
+    assert(is_empty(tmp2.m0));
+    assert(end == get_begin(tmp2.m0));
+    assert(end == get_end(tmp2.m0));
+    assert(0 == get_count(tmp2.m0));
+
+    assert(!is_empty(tmp2.m1));
+    assert(&arr[0] + count == get_begin(tmp2.m1));
+    NotPresent np = get_end(tmp2.m1);
+    np = get_count(tmp2.m1);
+    assert(lexicographical_equal(inputRange, outputRange));
+
+    visit_2_ranges(zeroesRange, outputRange, copy_step{});
+
+    assert(!lexicographical_equal(inputRange, outputRange));
+    auto tmp3 = visit_2_ranges(make_range(begin, NotPresent{}, NotPresent{}), outputRange, copy_step{});
+    assert(!is_empty(tmp3.m0));
+    assert(end == get_begin(tmp3.m0));
+    np = get_end(tmp3.m0);
+    np = get_count(tmp3.m0);
+
+    assert(is_empty(tmp3.m1));
+    assert(&arr[0] + count == get_begin(tmp3.m1));
+    assert(get_end(tmp3.m1) == get_begin(tmp3.m1));
+    assert(0 == get_count(tmp3.m1));
+    assert(lexicographical_equal(inputRange, outputRange));
+  }
+
+  void testVisit3Ranges() {
+    constexpr int ARR_LEN = 10;
+    int arr[ARR_LEN] = {};
+    int arr2[ARR_LEN] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+    int arr3[ARR_LEN] = {};
+    auto unbounded0 = make_range(&arr[0], NotPresent{}, NotPresent{});
+    auto unbounded1 = make_range(&arr2[0], NotPresent{}, NotPresent{});
+    auto bounded0 = make_range(&arr3[0], NotPresent{}, ARR_LEN);
+    auto pred = [](int, int) { return true; };
+    visit_3_ranges(unbounded0, unbounded1, bounded0, make_merge_if(pred, copy_step{}));
+    assert(lexicographical_equal(make_range(&arr2[0], NotPresent{}, ARR_LEN), make_range(&arr3[0], NotPresent{}, ARR_LEN)));
+
+    visit_3_ranges(make_range(&arr[0], NotPresent{}, ARR_LEN), make_range(&arr2[0], NotPresent{}, ARR_LEN), bounded0, make_merge_if(pred, copy_step{}));
+    assert(lexicographical_equal(make_range(&arr2[0], NotPresent{}, ARR_LEN), make_range(&arr3[0], NotPresent{}, ARR_LEN)));
   }
 } // unnamed namespace
 } // namespace range2
@@ -1999,6 +2065,8 @@ int main() {
   forEachRangeRun(TestLexicographicalLess{});
 
   testSteps();
+  testVisit2Ranges();
+  testVisit3Ranges();
 
   testPerformance();
 

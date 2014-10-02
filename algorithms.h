@@ -796,29 +796,6 @@ visit_2_ranges_impl(R0 r0, R1 r1, Step step, InliningPreferences p) {
   return make_pair(r0, r1);
 }
 
-/*
-template<typename R0, typename R1, typename Step, typename InliningPreferences>
-INLINE typename std::enable_if<IsAFiniteRange<R0>::value && IsAFiniteRange<R1>::value, pair<R0, R1> >::type
-visit_2_ranges_impl(R0 r0, R1 r1, Step step, InliningPreferences p) {
-  while(!is_empty(r0) && !is_empty(r1)) step(r0, r1);
-  return make_pair(r0, r1);
-}
-
-template<typename R0, typename R1, typename Step, typename InliningPreferences>
-INLINE typename std::enable_if<IsAFiniteRange<R0>::value && !IsAFiniteRange<R1>::value, pair<R0, R1> >::type
-visit_2_ranges_impl(R0 r0, R1 r1, Step step, InliningPreferences p) {
-  while(!is_empty(r0)) step(r0, r1);
-  return make_pair(r0, r1);
-}
-
-template<typename R0, typename R1, typename Step, typename InliningPreferences>
-INLINE typename std::enable_if<!IsAFiniteRange<R0>::value && IsAFiniteRange<R1>::value, pair<R0, R1> >::type
-visit_2_ranges_impl(R0 r0, R1 r1, Step step, InliningPreferences p) {
-  while(!is_empty(r1)) step(r0, r1);
-  return make_pair(r0, r1);
-}
-*/
-
 template<typename R0, typename R1, typename Step, typename InliningPreferences>
 ALWAYS_INLINE_HIDDEN auto visit_2_ranges(R0 r0, R1 r1, Step step, InliningPreferences p) -> decltype ( visit_2_ranges_impl(add_constant_time_count(r0), add_constant_time_count(r1), step, p) ) {
   static_assert(IsAFiniteRange<R0>::value || IsAFiniteRange<R1>::value, "One of the ranges must be finite");
@@ -879,57 +856,6 @@ visit_3_ranges_impl(R0 r0, R1 r1, R2 r2, Step step, InliningPreferences p) {
   while (!is_empty(r0) && !is_empty(r1) && !is_empty(r2)) step(r0, r1, r2);
   return make_triple(r0, r1, r2);
 }
-
-/*
-template<typename R0, typename R1, typename R2, typename Step, typename InliningPreferences>
-INLINE typename std::enable_if<IsAFiniteRange<R0>::value && IsAFiniteRange<R1>::value && IsAFiniteRange<R2>::value, triple<R0, R1, R2>>::type
-visit_3_ranges_impl(R0 r0, R1 r1, R2 r2, Step step, InliningPreferences p) {
-  while (!is_empty(r0) && !is_empty(r1) && !is_empty(r2)) step(r0, r1, r2);
-  return make_triple(r0, r1, r2);
-}
-
-template<typename R0, typename R1, typename R2, typename Step, typename InliningPreferences>
-INLINE typename std::enable_if<!IsAFiniteRange<R0>::value && IsAFiniteRange<R1>::value && IsAFiniteRange<R2>::value, triple<R0, R1, R2>>::type
-visit_3_ranges_impl(R0 r0, R1 r1, R2 r2, Step step, InliningPreferences p) {
-  while (!is_empty(r1) && !is_empty(r2)) step(r0, r1, r2);
-  return make_triple(r0, r1, r2);
-}
-
-template<typename R0, typename R1, typename R2, typename Step, typename InliningPreferences>
-INLINE typename std::enable_if<IsAFiniteRange<R0>::value && !IsAFiniteRange<R1>::value && IsAFiniteRange<R2>::value, triple<R0, R1, R2>>::type
-visit_3_ranges_impl(R0 r0, R1 r1, R2 r2, Step step, InliningPreferences p) {
-  while (!is_empty(r0) && !is_empty(r2)) step(r0, r1, r2);
-  return make_triple(r0, r1, r2);
-}
-
-template<typename R0, typename R1, typename R2, typename Step, typename InliningPreferences>
-INLINE typename std::enable_if<IsAFiniteRange<R0>::value && IsAFiniteRange<R1>::value && !IsAFiniteRange<R2>::value, triple<R0, R1, R2>>::type
-visit_3_ranges_impl(R0 r0, R1 r1, R2 r2, Step step, InliningPreferences p) {
-  while (!is_empty(r0) && !is_empty(r1)) step(r0, r1, r2);
-  return make_triple(r0, r1, r2);
-}
-
-template<typename R0, typename R1, typename R2, typename Step, typename InliningPreferences>
-INLINE typename std::enable_if<!IsAFiniteRange<R0>::value && !IsAFiniteRange<R1>::value && IsAFiniteRange<R2>::value, triple<R0, R1, R2>>::type
-visit_3_ranges_impl(R0 r0, R1 r1, R2 r2, Step step, InliningPreferences p) {
-  while (!is_empty(r2)) step(r0, r1, r2);
-  return make_triple(r0, r1, r2);
-}
-
-template<typename R0, typename R1, typename R2, typename Step, typename InliningPreferences>
-INLINE typename std::enable_if<!IsAFiniteRange<R0>::value && IsAFiniteRange<R1>::value && !IsAFiniteRange<R2>::value, triple<R0, R1, R2>>::type
-visit_3_ranges_impl(R0 r0, R1 r1, R2 r2, Step step, InliningPreferences p) {
-  while (!is_empty(r1)) step(r0, r1, r2);
-  return make_triple(r0, r1, r2);
-}
-
-template<typename R0, typename R1, typename R2, typename Step, typename InliningPreferences>
-INLINE typename std::enable_if<IsAFiniteRange<R0>::value && !IsAFiniteRange<R1>::value && !IsAFiniteRange<R2>::value, triple<R0, R1, R2>>::type
-visit_3_ranges_impl(R0 r0, R1 r1, R2 r2, Step step, InliningPreferences p) {
-  while (!is_empty(r0)) step(r0, r1, r2);
-  return make_triple(r0, r1, r2);
-}
-*/
 
 template<typename R0, typename R1, typename R2, typename Step, typename InliningPreferences>
 ALWAYS_INLINE_HIDDEN auto visit_3_ranges(R0 r0, R1 r1, R2 r2, Step step, InliningPreferences p) -> decltype ( visit_3_ranges_impl(add_constant_time_count(r0), add_constant_time_count(r1), add_constant_time_count(r2), step, p) ) {

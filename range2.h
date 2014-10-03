@@ -410,7 +410,7 @@ constexpr ALWAYS_INLINE_HIDDEN Count decrementCount(Count x) { return x - 1; }
 
 template<typename Iterator, typename End, typename Count>
 constexpr ALWAYS_INLINE_HIDDEN Range<Iterator, End, Count>
-next(Range<Iterator, End, Count> const& x) {
+successor(Range<Iterator, End, Count> const& x) {
   return Range<Iterator, End, Count>::make(range2::advance(get_begin(x), 1), get_end(x), impl::decrementCount(get_count(x)));
 }
 
@@ -490,7 +490,7 @@ add_linear_time_end(Range<Iterator, NotPresent, Count> const& x) {
   auto tmp = x;
   DifferenceType<Iterator> count = 0;
   while (!is_empty(tmp)) {
-    tmp = next(tmp);
+    tmp = successor(tmp);
     ++count;
   }
   return add_count(add_end(cmove(x), get_begin(tmp)), cmove(count));
@@ -572,7 +572,7 @@ add_linear_time_count(Range<Iterator, End, NotPresent> const& x) {
   auto tmp = x;
   DifferenceType<Iterator> count = 0;
   while (!is_empty(tmp)) {
-    tmp = next(tmp);
+    tmp = successor(tmp);
     ++count;
   }
   return make_range(get_begin(x), get_end(x), count);

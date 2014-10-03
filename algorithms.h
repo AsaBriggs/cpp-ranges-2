@@ -126,7 +126,7 @@ INLINE pair<Op, Range>
 for_each_impl(Range r, Op op, InliningPreferences) {
   while (!is_empty(r)) {
     op(get_begin(r));
-    r = next(r);
+    r = successor(r);
   }
   return range2::make_pair(op, r);
 }
@@ -151,7 +151,7 @@ ALWAYS_INLINE_HIDDEN auto for_each(Range r, Op op) -> decltype( for_each_impl(ad
 template<typename Range, typename Pred, typename InliningPreferences>
 INLINE Range
 find_if_impl(Range r, Pred p, InliningPreferences x) {
-  while (!is_empty(r) && !p(get_begin(r))) r = next(r);
+  while (!is_empty(r) && !p(get_begin(r))) r = successor(r);
   return r;
 }
 
@@ -207,7 +207,7 @@ ALWAYS_INLINE_HIDDEN reduce_op<Op, Func, State> make_reduce_op(Op op, Func func,
 template<typename Range, typename Op, typename Func, typename InliningPreferences>
 ALWAYS_INLINE_HIDDEN pair<RangeValue<Range>, Range> reduce_nonempty_impl(Range r, Op op, Func f, InliningPreferences p) {
   assert(!is_empty(r));
-  auto tmp = for_each_impl(next(r), make_reduce_op(op, f, *get_begin(r)), p);
+  auto tmp = for_each_impl(successor(r), make_reduce_op(op, f, *get_begin(r)), p);
   return range2::make_pair(cmove(tmp.m0.state), cmove(tmp.m1));
 }
 
@@ -265,7 +265,7 @@ template<typename Range, typename Op, typename Func, typename InliningPreference
 ALWAYS_INLINE_HIDDEN pair<RangeValue<Range>, Range> reduce_nonzeroes_impl(Range r, Op op, Func f, RangeValue<Range> const& z, InliningPreferences p) {
   auto firstNonZero = find_if_impl(r, [&z, &f](RangeIterator<Range> x) -> bool { return z != f(x); }, p);
   if (!is_empty(firstNonZero)) {
-    auto tmp = for_each_impl(next(firstNonZero), make_reduce_nonzeroes_op(op, f, f(get_begin(firstNonZero)), z), p);
+    auto tmp = for_each_impl(successor(firstNonZero), make_reduce_nonzeroes_op(op, f, f(get_begin(firstNonZero)), z), p);
     return range2::make_pair(tmp.m0.state, tmp.m1);
   } else {
     return range2::make_pair(z, r);
@@ -287,7 +287,7 @@ template<typename Range0, typename Range1, typename Rel, typename InliningPrefer
 INLINE typename std::enable_if<!IsACountedRange<Range0>::value || !IsACountedRange<Range1>::value, pair<Range0, Range1>>::type
 find_mismatch_impl(Range0 r0, Range1 r1, Rel rel, InliningPreferences p) {
   while (!is_empty(r0) && !is_empty(r1) && rel(get_begin(r0), get_begin(r1))) {
-    r0 = next(r0), r1 = next(r1);
+    r0 = successor(r0), r1 = successor(r1);
   }
   return range2::make_pair(r0, r1);
 }
@@ -321,11 +321,11 @@ template<typename Range, typename Rel, typename InliningPreferences>
 INLINE pair<RangeValue<Range>, Range> find_adjacent_mismatch_input_non_empty_impl(Range r, Rel rel, InliningPreferences p) {
   assert(!is_empty(r));
   RangeValue<Range> tmp = *get_begin(r);
-  r = next(r);
+  r = successor(r);
   while (!is_empty(r)) {
     if (!rel(&tmp, get_begin(r))) return range2::make_pair(tmp, r);
     tmp = *get_begin(r);
-    r = next(r);
+    r = successor(r);
   }
   return range2::make_pair(tmp, r);
 }
@@ -348,7 +348,7 @@ find_adjacent_mismatch_impl(Range r, Rel rel, InliningPreferences p) {
   auto prev = r; // Initialise prev to something, anything.
   do {
     prev = r;
-    r = next(r);
+    r = successor(r);
   } while (!is_empty(r) && rel(get_begin(prev), get_begin(r)));
   return r;
 }
@@ -673,7 +673,7 @@ struct TYPE_DEFAULT_VISIBILITY copy_step
   template<typename I, typename O>
   ALWAYS_INLINE_HIDDEN void operator()(I& i, O& o) const {
     sink(get_begin(o), *get_begin(i));
-    i = next(i), o = next(o);
+    i = successor(i), o = successor(o);
   }
 };
 
@@ -682,7 +682,7 @@ struct TYPE_DEFAULT_VISIBILITY move_step
   template<typename I, typename O>
   ALWAYS_INLINE_HIDDEN void operator()(I& i, O& o) const {
     sink(get_begin(o), std::move(*get_begin(i)));
-    i = next(i), o = next(o);
+    i = successor(i), o = successor(o);
   }
 };
 
@@ -692,7 +692,7 @@ struct TYPE_DEFAULT_VISIBILITY swap_step
   ALWAYS_INLINE_HIDDEN void operator()(I& i, O& o) const {
     using std::swap;
     swap(*get_begin(i), *get_begin(o));
-    i = next(i), o = next(o);
+    i = successor(i), o = successor(o);
   }
 };
 
@@ -707,7 +707,7 @@ struct TYPE_DEFAULT_VISIBILITY step_if
     if (p(get_begin(i))) {
       step(i, o) ;
     } else {
-      i = next(i);
+      i = successor(i);
     }
   }
 };

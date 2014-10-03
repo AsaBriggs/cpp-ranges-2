@@ -181,10 +181,10 @@ namespace {
 
   void testRangeRelationals() {
     // tests first clause of <
-    testRelationalOperators(r00, next(r00));
-    testRelationalOperators(r01, next(r01));
-    testRelationalOperators(r10, next(r10));
-    testRelationalOperators(r11, next(r11));
+    testRelationalOperators(r00, successor(r00));
+    testRelationalOperators(r01, successor(r01));
+    testRelationalOperators(r10, successor(r10));
+    testRelationalOperators(r11, successor(r11));
 
     {
       auto tmp = r01;
@@ -378,12 +378,12 @@ namespace {
     while (!is_empty(x)) {
       assert(i == *get_begin(x));
       ++i;
-      x = next(x);
+      x = successor(x);
     }
     assert(count == i);
   }
 
-  void testNext() {
+  void testSuccessor() {
     testBoundedRange(make_range(begin, end, NotPresent{}));
     testBoundedRange(make_range(begin, NotPresent{}, count));
     testBoundedRange(make_range(begin, end, count));
@@ -835,7 +835,7 @@ namespace {
     while (!is_empty(range)) {
       assert(expected == deref(get_begin(range)));
       --expected;
-      range = next(range);
+      range = successor(range);
     }
     assert(-1 == expected);
   }
@@ -855,7 +855,7 @@ namespace {
     while (!is_empty(y)) {
       assert(expected == *get_begin(y));
       expected += N;
-      y = next(y);
+      y = successor(y);
     }
     assert(count == expected);
   }
@@ -880,7 +880,7 @@ namespace {
     int expected = count - N;
     while (!is_empty(x)) {
       assert(expected == *get_begin(x));
-      x = next(x);
+      x = successor(x);
       expected -= N;
     }
     assert(-N == expected);
@@ -915,7 +915,7 @@ namespace {
     SumType tmp = 0;
     while (!is_empty(x)) {
       tmp += *get_begin(x);
-      x = next(x);
+      x = successor(x);
     }
     return tmp;
   }
@@ -992,20 +992,20 @@ namespace {
     count -= cBy4*4;
     auto range = make_range(get_begin(x), NotPresent{}, NotPresent{});
     while (decltype(cBy4){0} != cBy4) {
-      auto r1 = next(range);
-      auto r2 = next(r1);
-      auto r3 = next(r2);
+      auto r1 = successor(range);
+      auto r2 = successor(r1);
+      auto r3 = successor(r2);
       tmp0 += *get_begin(range);
       tmp1 += *get_begin(r1);
       tmp2 += *get_begin(r2);
       tmp3 += *get_begin(r3);
       --cBy4;
-      range = next(r3);
+      range = successor(r3);
     }
     SumType tmp4 = 0;
     while (decltype(count){0} != count) {
       tmp4 += *get_begin(range);
-      range = next(range);
+      range = successor(range);
       --count;
     }
 
@@ -1796,8 +1796,8 @@ namespace {
   struct TestLexicographicalEqual {
     template<typename Iterator>
     void operator()(Range<Iterator, NotPresent, NotPresent> r) const {
-      assert(!lexicographical_equal(r, next(r)));
-      assert(!lexicographical_equal(next(r), r));
+      assert(!lexicographical_equal(r, successor(r)));
+      assert(!lexicographical_equal(successor(r), r));
     }
 
     template<typename R>
@@ -1810,8 +1810,8 @@ namespace {
         assert(lexicographical_equal(r, make_range(begin, end, NotPresent{})));
         assert(lexicographical_equal(make_range(begin, end, NotPresent{}), r));
 
-        assert(!lexicographical_equal(r, next(r)));
-        assert(!lexicographical_equal(next(r), r));
+        assert(!lexicographical_equal(r, successor(r)));
+        assert(!lexicographical_equal(successor(r), r));
       }
     }
   };
@@ -1825,7 +1825,7 @@ namespace {
   void testLexicographicalLess() {
     int arr[] = {0, 1, 2, 3, 4};
     auto r = make_range(&arr[0], NotPresent{}, 5);
-    auto n = next(r);
+    auto n = successor(r);
     testLexicographicalLessImpl(r, n);
     testLexicographicalLessImpl(make_range(get_begin(r), NotPresent{}, get_count(r) - 1), r);
   }
@@ -1839,8 +1839,8 @@ namespace {
         assert(!lexicographical_less(r, r));
         assert(!lexicographical_less(r, r, NoInline{}));
 
-        // Different lengths but values within next(r) are greater by one
-        testLexicographicalLessImpl(r, next(r));
+        // Different lengths but values within successor(r) are greater by one
+        testLexicographicalLessImpl(r, successor(r));
 
         // Different lengths
         testLexicographicalLessImpl(make_range(get_begin(r), NotPresent{}, count-1), r);
@@ -1887,8 +1887,8 @@ namespace {
     auto i0 = r0;
     auto o0 = r1;
     copy_step{}(i0, o0);
-    assert(i0 == next(r0));
-    assert(o0 == next(r1));
+    assert(i0 == successor(r0));
+    assert(o0 == successor(r1));
     assert(*get_begin(r0) == *get_begin(r1));
 
     MoveOnlyType arr2[2];
@@ -1899,8 +1899,8 @@ namespace {
     auto i1 = r2;
     auto o1 = r3;
     move_step{}(i1, o1);
-    assert(next(r2) == i1);
-    assert(next(r3) == o1);
+    assert(successor(r2) == i1);
+    assert(successor(r3) == o1);
     assert(get_begin(r2)->tag == MoveOnlyType::NOT_SET_TAG);
     assert(get_begin(r3)->tag == 0);
 
@@ -1912,8 +1912,8 @@ namespace {
     auto i2 = r4;
     auto o2 = r5;
     swap_step{}(i2, o2);
-    assert(next(r4) == i2);
-    assert(next(r5) == o2);
+    assert(successor(r4) == i2);
+    assert(successor(r5) == o2);
     assert(get_begin(r4)->tag == 2);
     assert(get_begin(r5)->tag == 1);
   }
@@ -2012,7 +2012,7 @@ int main() {
   testAddLinearTimeCount();
 
   testIsEmpty();
-  testNext();
+  testSuccessor();
 
   testSplitAt();
   testJoin();

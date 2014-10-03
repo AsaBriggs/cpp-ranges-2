@@ -210,17 +210,17 @@ struct TYPE_HIDDEN_VISIBILITY reduce_nonzeroes_op
   Op op;
   Func func;
   State state;
-  State const& z;
+  State const* z;
 
   template<typename Iterator>
   ALWAYS_INLINE_HIDDEN void operator()(Iterator x) {
     auto tmp = func(x);
-    if (z != tmp) state = op(state, func(x));
+    if (*z != tmp) state = op(state, func(x));
   }
 };
 
 template<typename Op, typename Func, typename State>
-ALWAYS_INLINE_HIDDEN reduce_nonzeroes_op<Op, Func, State> make_reduce_nonzeroes_op(Op op, Func func, State state, State const& z) {
+ALWAYS_INLINE_HIDDEN reduce_nonzeroes_op<Op, Func, State> make_reduce_nonzeroes_op(Op op, Func func, State state, State const* z) {
   return {cmove(op), cmove(func), cmove(state), z};
 }
 
@@ -229,7 +229,7 @@ template<typename Range, typename Op, typename Func>
 ALWAYS_INLINE_HIDDEN pair<RangeValue<Range>, Range> reduce_nonzeroes_impl(Range r, Op op, Func f, RangeValue<Range> const& z) {
   auto firstNonZero = find_if_impl(r, [&z, &f](RangeIterator<Range> x) -> bool { return z != f(x); });
   if (!is_empty(firstNonZero)) {
-    auto tmp = for_each_impl(successor(firstNonZero), make_reduce_nonzeroes_op(op, f, f(get_begin(firstNonZero)), z));
+    auto tmp = for_each_impl(successor(firstNonZero), make_reduce_nonzeroes_op(op, f, f(get_begin(firstNonZero)), &z));
     return range2::make_pair(tmp.m0.state, tmp.m1);
   } else {
     return range2::make_pair(z, r);

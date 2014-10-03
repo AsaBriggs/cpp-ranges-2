@@ -25,8 +25,8 @@ struct TYPE_HIDDEN_VISIBILITY deref_op
 
   template<typename... Iterators>
   // Requires input_type(Op, 0) == ValueType<Iterator>
-  ALWAYS_INLINE_HIDDEN auto operator()(Iterators... x) -> decltype( op(*x...) ) {
-    return op(*x...);
+    ALWAYS_INLINE_HIDDEN auto operator()(Iterators... x) -> decltype( op(deref(x)...) ) {
+    return op(deref(x)...);
   }
 };
 
@@ -182,7 +182,7 @@ ALWAYS_INLINE_HIDDEN reduce_op<Op, Func, State> make_reduce_op(Op op, Func func,
 template<typename Range, typename Op, typename Func>
 ALWAYS_INLINE_HIDDEN pair<RangeValue<Range>, Range> reduce_nonempty_impl(Range r, Op op, Func f) {
   assert(!is_empty(r));
-  auto tmp = for_each_impl(successor(r), make_reduce_op(op, f, *get_begin(r)));
+  auto tmp = for_each_impl(successor(r), make_reduce_op(op, f, deref(get_begin(r))));
   return range2::make_pair(cmove(tmp.m0.state), cmove(tmp.m1));
 }
 
@@ -274,11 +274,11 @@ ALWAYS_INLINE_HIDDEN auto find_mismatch(Range0 r0, Range1 r1, Rel rel) -> declty
 template<typename Range, typename Rel>
 INLINE pair<RangeValue<Range>, Range> find_adjacent_mismatch_input_non_empty_impl(Range r, Rel rel) {
   assert(!is_empty(r));
-  RangeValue<Range> tmp = *get_begin(r);
+  RangeValue<Range> tmp = deref(get_begin(r));
   r = successor(r);
   while (!is_empty(r)) {
     if (!rel(&tmp, get_begin(r))) return range2::make_pair(tmp, r);
-    tmp = *get_begin(r);
+    tmp = deref(get_begin(r));
     r = successor(r);
   }
   return range2::make_pair(tmp, r);
@@ -462,11 +462,11 @@ equivalent_range_impl(Rng r, Rel rel, RangeValue<Rng> const& a, BisectionOperati
   while (decltype(n){0} != n) {
     auto h = bo(n);
     auto m = range2::advance(iter, h);
-    if (rel(*m, a)) {
+    if (rel(deref(m), a)) {
       lhsN = lhsN + h + 1;
       iter = successor(m);
       n =  n - (h + 1);
-    } else if (rel(a, *m)) {
+    } else if (rel(a, deref(m))) {
       // m is greater than the equivalent range, so shrink the search range.
       n = h;
     } else {
@@ -553,7 +553,7 @@ struct TYPE_DEFAULT_VISIBILITY copy_step
 {
   template<typename I, typename O>
   ALWAYS_INLINE_HIDDEN void operator()(I& i, O& o) const {
-    sink(get_begin(o), *get_begin(i));
+    sink(get_begin(o), deref(get_begin(i)));
     i = successor(i), o = successor(o);
   }
 };
@@ -562,7 +562,7 @@ struct TYPE_DEFAULT_VISIBILITY move_step
 {
   template<typename I, typename O>
   ALWAYS_INLINE_HIDDEN void operator()(I& i, O& o) const {
-    sink(get_begin(o), std::move(*get_begin(i)));
+    sink(get_begin(o), std::move(deref(get_begin(i))));
     i = successor(i), o = successor(o);
   }
 };
@@ -572,7 +572,7 @@ struct TYPE_DEFAULT_VISIBILITY swap_step
   template<typename I, typename O>
   ALWAYS_INLINE_HIDDEN void operator()(I& i, O& o) const {
     using std::swap;
-    swap(*get_begin(i), *get_begin(o));
+    swap(deref(get_begin(i)), deref(get_begin(o)));
     i = successor(i), o = successor(o);
   }
 };

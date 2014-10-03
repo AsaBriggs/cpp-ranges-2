@@ -108,14 +108,24 @@ constexpr ALWAYS_INLINE_HIDDEN I predecessor(I x) { return --x; }
 
 
 template<typename Iterator, typename Enable=void>
+struct TYPE_HIDDEN_VISIBILITY AutomaticallyGenerateDeref : std::true_type {};
+
+template<typename Iterator>
+constexpr ALWAYS_INLINE_HIDDEN typename std::enable_if<AutomaticallyGenerateDeref<Iterator>::value, Reference<Iterator>>::type
+deref(Iterator i) {
+  return *i;
+}
+
+template<typename Iterator, typename Enable=void>
 struct TYPE_HIDDEN_VISIBILITY AutomaticallyGenerateSink : std::true_type {};
 
 template<typename T, typename I>
 ALWAYS_INLINE_HIDDEN typename std::enable_if<AutomaticallyGenerateSink<I>::value, void>::type
 sink(I const& x, T&& y) {
   static_assert(std::is_convertible<T, ValueType<I>>::value, "Value to sink must be convertible to value type of Iterator");
-  *x = std::forward<T>(y);
-};
+  deref(x) = std::forward<T>(y);
+}
+
 
 // Concept IteratorBasis
 // - semiregular
@@ -232,6 +242,9 @@ struct TYPE_DEFAULT_VISIBILITY iterator {
 template <IteratorBasis B>
 struct GenerateDerivedComparisonOperations<iterator<B>> : std::true_type {};
 
+template<IteratorBasis B>
+struct TYPE_HIDDEN_VISIBILITY AutomaticallyGenerateDeref<iterator<B>> : std::false_type {};
+
 
 template<IteratorBasis I>
 struct TYPE_HIDDEN_VISIBILITY AutomaticallyGenerateSink<iterator<I>> : std::false_type {};
@@ -253,7 +266,7 @@ struct TYPE_DEFAULT_VISIBILITY iterator_basis {
   typedef IteratorCategory<I> iterator_category;
 
   friend constexpr ALWAYS_INLINE_HIDDEN
-  reference deref(iterator_basis const& x) { return *x.position; }
+  reference deref(iterator_basis const& x) { return deref(x.position); }
 
   friend constexpr ALWAYS_INLINE_HIDDEN
   iterator_basis successor(iterator_basis const& x) { return {range2::successor(x.position)}; }
@@ -293,7 +306,7 @@ struct TYPE_DEFAULT_VISIBILITY reverse_iterator_basis {
 
   // Take a copy of the iterator to be able to use -- inline
   friend constexpr ALWAYS_INLINE_HIDDEN
-  reference deref(reverse_iterator_basis x) { return *(range2::predecessor(x.position)); }
+  reference deref(reverse_iterator_basis x) { return deref(range2::predecessor(x.position)); }
 
   friend constexpr ALWAYS_INLINE_HIDDEN
   reverse_iterator_basis successor(reverse_iterator_basis const& x) { return {range2::predecessor(x.position)}; }
@@ -334,7 +347,7 @@ struct TYPE_DEFAULT_VISIBILITY skip_iterator_basis {
   typedef IteratorCategory<I> iterator_category;
 
   friend constexpr ALWAYS_INLINE_HIDDEN
-  reference deref(skip_iterator_basis const& x) { return *x.position; }
+  reference deref(skip_iterator_basis const& x) { return deref(x.position); }
 
   friend constexpr ALWAYS_INLINE_HIDDEN
   skip_iterator_basis successor(skip_iterator_basis const& x) { return {range2::advance(x.position, N)}; }

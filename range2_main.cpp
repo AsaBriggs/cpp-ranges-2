@@ -1629,7 +1629,7 @@ namespace {
 
           {
             auto range0 = make_range(std::begin(toSearch), std::end(toSearch), NotPresent{});
-            auto tmp0 = equivalent_range(range0, std::less<Value>{}, equal_value);
+            auto tmp0 = equivalent_range(range0, make_derefop(std::less<Value>{}), equal_value);
 
             assert(std::begin(toSearch) == get_begin(tmp0.m0));
             assert(std::begin(toSearch) + i == get_end(tmp0.m0));
@@ -1645,7 +1645,7 @@ namespace {
           }
           {
             auto range1 = make_range(std::begin(toSearch), std::end(toSearch), toSearch.size());
-            auto tmp1 = equivalent_range(range1, std::less<Value>{}, equal_value);
+            auto tmp1 = equivalent_range(range1, make_derefop(std::less<Value>{}), equal_value);
 
             assert(std::begin(toSearch) == get_begin(tmp1.m0));
             assert(std::begin(toSearch) + i == get_end(tmp1.m0));

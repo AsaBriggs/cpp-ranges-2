@@ -400,40 +400,42 @@ namespace impl {
 
 template<typename Value, typename Rel>
 struct TYPE_HIDDEN_VISIBILITY lower_bound_pred {
-  Value const& v;
+  Value const* v;
   Rel rel;
 
-  bool ALWAYS_INLINE_HIDDEN operator()(Value const& x) {
-    return !rel(x, v);
+  template<typename Iterator>
+  bool ALWAYS_INLINE_HIDDEN operator()(Iterator i) {
+    return !rel(i, v);
   }
 };
 
 template<typename Value, typename Rel>
-ALWAYS_INLINE_HIDDEN lower_bound_pred<Value, Rel> make_lower_bound_pred(Value const& v, Rel rel) {
+ALWAYS_INLINE_HIDDEN lower_bound_pred<Value, Rel> make_lower_bound_pred(Value const* v, Rel rel) {
   return {v, cmove(rel)};
 }
 
 
 template<typename Value, typename Rel>
 struct TYPE_HIDDEN_VISIBILITY upper_bound_pred {
-  Value const& v;
+  Value const* v;
   Rel rel;
 
-  bool ALWAYS_INLINE_HIDDEN operator()(Value const& x) {
-    return rel(v, x);
+  template<typename Iterator>
+  bool ALWAYS_INLINE_HIDDEN operator()(Iterator i) {
+    return rel(v, i);
   }
 };
 
 template<typename Value, typename Rel>
-ALWAYS_INLINE_HIDDEN upper_bound_pred<Value, Rel> make_upper_bound_pred(Value const& v, Rel rel) {
+ALWAYS_INLINE_HIDDEN upper_bound_pred<Value, Rel> make_upper_bound_pred(Value const* v, Rel rel) {
   return {v, cmove(rel)};
 }
 
 } // namespace impl
 
 template<typename Range, typename Rel>
-ALWAYS_INLINE_HIDDEN auto lower_bound_predicate_impl(Range r, Rel rel, RangeValue<Range> const& a) -> decltype ( partition_point_impl(r, make_derefop(impl::lower_bound_pred<RangeValue<Range>, Rel>{a, rel})) ) {
-  return partition_point_impl(r, make_derefop(impl::make_lower_bound_pred(a, rel)));
+  ALWAYS_INLINE_HIDDEN auto lower_bound_predicate_impl(Range r, Rel rel, RangeValue<Range> const& a) -> decltype ( partition_point_impl(r, impl::make_lower_bound_pred(&a, rel)) ) {
+  return partition_point_impl(r, impl::make_lower_bound_pred(&a, rel));
 }
 
 template<typename Range, typename Rel>
@@ -443,8 +445,8 @@ ALWAYS_INLINE_HIDDEN auto lower_bound_predicate(Range r, Rel rel, RangeValue<Ran
 
 
 template<typename Range, typename Rel>
-ALWAYS_INLINE_HIDDEN auto upper_bound_predicate_impl(Range r, Rel rel, RangeValue<Range> const& a) -> decltype ( partition_point_impl(r, make_derefop(impl::upper_bound_pred<RangeValue<Range>, Rel>{a, rel})) ){
-  return partition_point_impl(r, make_derefop(impl::make_upper_bound_pred(a, rel)));
+  ALWAYS_INLINE_HIDDEN auto upper_bound_predicate_impl(Range r, Rel rel, RangeValue<Range> const& a) -> decltype ( partition_point_impl(r, impl::make_upper_bound_pred(&a, rel)) ){
+  return partition_point_impl(r, impl::make_upper_bound_pred(&a, rel));
 }
 
 template<typename Range, typename Rel>
@@ -462,11 +464,11 @@ equivalent_range_impl(Rng r, Rel rel, RangeValue<Rng> const& a, BisectionOperati
   while (decltype(n){0} != n) {
     auto h = bo(n);
     auto m = range2::advance(iter, h);
-    if (rel(deref(m), a)) {
+    if (rel(m, &a)) {
       lhsN = lhsN + h + 1;
       iter = successor(m);
       n =  n - (h + 1);
-    } else if (rel(a, deref(m))) {
+    } else if (rel(&a, m)) {
       // m is greater than the equivalent range, so shrink the search range.
       n = h;
     } else {

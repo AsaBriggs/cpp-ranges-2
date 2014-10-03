@@ -39,8 +39,9 @@ struct TYPE_HIDDEN_VISIBILITY DerefOp
 
 template<typename Op>
 ALWAYS_INLINE_HIDDEN DerefOp<Op> make_derefop(Op op) {
-  return {op};
+  return {cmove(op)};
 }
+
 
 template<typename Op>
 // Requires BinaryOperation(Op)
@@ -53,6 +54,12 @@ struct TYPE_HIDDEN_VISIBILITY complement
     return !op(std::forward<T>(t)...);
   }
 };
+
+template<typename Op>
+ALWAYS_INLINE_HIDDEN complement<Op> make_complement(Op op) {
+  return {cmove(op)};
+}
+
 
 template<typename Op>
 // Requires BinaryOperation(Op)
@@ -69,6 +76,12 @@ struct TYPE_HIDDEN_VISIBILITY converse
 };
 
 template<typename Op>
+ALWAYS_INLINE_HIDDEN converse<Op> make_converse(Op op) {
+  return {cmove(op)};
+}
+
+
+template<typename Op>
 // Requires BinaryOperation(Op)
 struct TYPE_HIDDEN_VISIBILITY complement_converse
 {
@@ -81,6 +94,11 @@ struct TYPE_HIDDEN_VISIBILITY complement_converse
     return !op(std::forward<T1>(y), std::forward<T0>(x));
   }
 };
+
+template<typename Op>
+ALWAYS_INLINE_HIDDEN complement_converse<Op> make_complement_converse(Op op) {
+  return {cmove(op)};
+}
 
 
 template<typename Op>
@@ -99,55 +117,18 @@ struct TYPE_HIDDEN_VISIBILITY equivalent
     
 template<typename Op>
 ALWAYS_INLINE_HIDDEN equivalent<Op> make_equivalent(Op op) {
-    return {op};
+  return {cmove(op)};
 }
 
-template<typename Range, typename Op>
+template<typename Range, typename Op, typename InliningPreferences>
 // Requires input_type(Op, 0) == RangeIterator(Range)
 INLINE pair<Op, Range>
-for_each_impl(Range r, Op op, NoInline) {
+for_each_impl(Range r, Op op, InliningPreferences) {
   while (!is_empty(r)) {
     op(get_begin(r));
     r = next(r);
   }
   return range2::make_pair(op, r);
-}
-
-template<typename Range, typename Op, typename InliningPreferences>
-// Requires input_type(Op, 0) == RangeIterator(Range)
-ALWAYS_INLINE_HIDDEN typename std::enable_if<!IsInlineable<Range>::value, pair<Op, Range>>::type
-for_each_impl(Range r, Op op, InliningPreferences) {
-  return for_each_impl(r, op, NoInline{});
-}
-
-template<typename Range, typename Op>
-// Requires input_type(Op, 0) == RangeIterator(Range)
-INLINE typename std::enable_if<IsInlineable<Range>::value, pair<Op, Range>>::type
-for_each_impl(Range r, Op op, Inline4) {
-
-  auto count = get_count(r);
-  auto countBy4 = count/4;
-  count -= countBy4*4;
-  auto iter = get_begin(r);
-
-  while (decltype(count){0} != countBy4) {
-    countBy4 = countBy4 - 1;
-    auto iter1 = successor(iter);
-    auto iter2 = successor(iter1);
-    auto iter3 = successor(iter2);
-    op(iter);
-    iter = successor(iter3);
-    op(iter1);
-    op(iter2);
-    op(iter3);
-  }
-
-  while (decltype(count){0} !=count) {
-    count = count - 1;
-    op(iter);
-    iter = successor(iter);
-  }
-  return range2::make_pair(op, make_range(iter, get_end(r), 0));
 }
 
 template<typename Range, typename Op, typename InliningPreferences>
@@ -167,20 +148,8 @@ ALWAYS_INLINE_HIDDEN auto for_each(Range r, Op op) -> decltype( for_each_impl(ad
 }
 
 
-
 template<typename Range, typename Pred, typename InliningPreferences>
-INLINE typename std::enable_if<IsACountedRange<Range>::value, Range>::type
-find_if_impl(Range r, Pred p, InliningPreferences x) {
-  auto count = get_count(r);
-  auto begin = get_begin(r);
-  while (decltype(count){0} != count && !p(begin)) {
-    count = count - 1, begin = successor(begin);
-  }
-  return make_range(begin, get_end(r), count);
-}
-
-template<typename Range, typename Pred, typename InliningPreferences>
-INLINE typename std::enable_if<!IsACountedRange<Range>::value, Range>::type
+INLINE Range
 find_if_impl(Range r, Pred p, InliningPreferences x) {
   while (!is_empty(r) && !p(get_begin(r))) r = next(r);
   return r;
@@ -229,11 +198,16 @@ struct TYPE_HIDDEN_VISIBILITY reduce_op
   }
 };
 
+template<typename Op, typename Func, typename State>
+ALWAYS_INLINE_HIDDEN reduce_op<Op, Func, State> make_reduce_op(Op op, Func func, State state) {
+  return {cmove(op), cmove(func), cmove(state)};
+}
+
+
 template<typename Range, typename Op, typename Func, typename InliningPreferences>
 ALWAYS_INLINE_HIDDEN pair<RangeValue<Range>, Range> reduce_nonempty_impl(Range r, Op op, Func f, InliningPreferences p) {
   assert(!is_empty(r));
-  auto operation = reduce_op<Op, Func, RangeValue<Range>>{op, f, *get_begin(r)};
-  auto tmp = for_each_impl(next(r), operation, p);
+  auto tmp = for_each_impl(next(r), make_reduce_op(op, f, *get_begin(r)), p);
   return range2::make_pair(cmove(tmp.m0.state), cmove(tmp.m1));
 }
 
@@ -266,7 +240,6 @@ template<typename Range, typename Op, typename Func>
   return reduce_impl(add_constant_time_count(r), op, f, z, NoInline{});
 }
 
-// TODO turn into a lambda?
 template<typename Op, typename Func, typename State>
 struct TYPE_HIDDEN_VISIBILITY reduce_nonzeroes_op
 {
@@ -282,11 +255,17 @@ struct TYPE_HIDDEN_VISIBILITY reduce_nonzeroes_op
   }
 };
 
+template<typename Op, typename Func, typename State>
+ALWAYS_INLINE_HIDDEN reduce_nonzeroes_op<Op, Func, State> make_reduce_nonzeroes_op(Op op, Func func, State state, State const& z) {
+  return {cmove(op), cmove(func), cmove(state), z};
+}
+
+
 template<typename Range, typename Op, typename Func, typename InliningPreferences>
 ALWAYS_INLINE_HIDDEN pair<RangeValue<Range>, Range> reduce_nonzeroes_impl(Range r, Op op, Func f, RangeValue<Range> const& z, InliningPreferences p) {
   auto firstNonZero = find_if_impl(r, [&z, &f](RangeIterator<Range> x) -> bool { return z != f(x); }, p);
   if (!is_empty(firstNonZero)) {
-    auto tmp = for_each_impl(next(firstNonZero), reduce_nonzeroes_op<Op, Func, RangeValue<Range>>{ op, f, f(get_begin(firstNonZero)), z}, p);
+    auto tmp = for_each_impl(next(firstNonZero), make_reduce_nonzeroes_op(op, f, f(get_begin(firstNonZero)), z), p);
     return range2::make_pair(tmp.m0.state, tmp.m1);
   } else {
     return range2::make_pair(z, r);
@@ -305,42 +284,9 @@ ALWAYS_INLINE_HIDDEN auto reduce_nonzeroes(Range r, Op op, Func f, RangeValue<Ra
 
 
 template<typename Range0, typename Range1, typename Rel, typename InliningPreferences>
-INLINE typename std::enable_if<!IsAFiniteRange<Range0>::value && !IsAFiniteRange<Range1>::value, pair<Range0, Range1>>::type
+INLINE typename std::enable_if<!IsACountedRange<Range0>::value || !IsACountedRange<Range1>::value, pair<Range0, Range1>>::type
 find_mismatch_impl(Range0 r0, Range1 r1, Rel rel, InliningPreferences p) {
-  auto iter0 = get_begin(r0);
-  auto iter1 = get_begin(r1);
-  while (rel(iter0, iter1)) {
-    iter0 = successor(iter0), iter1 = successor(iter1);
-  }
-  return range2::make_pair(make_range(iter0, NotPresent{}, NotPresent{}), make_range(iter1, NotPresent{}, NotPresent{}));
-}
-
-template<typename Range0, typename Range1, typename Rel, typename InliningPreferences>
-INLINE typename std::enable_if<IsAFiniteRange<Range0>::value && !IsAFiniteRange<Range1>::value, pair<Range0, Range1>>::type
-find_mismatch_impl(Range0 r0, Range1 r1, Rel rel, InliningPreferences p) {
-  auto iter1 = get_begin(r1);
-  while (!is_empty(r0) && rel(get_begin(r0), iter1)) {
-    r0 = next(r0), iter1 = successor(iter1);
-  }
-  return range2::make_pair(r0, make_range(iter1, NotPresent{}, NotPresent{}));
-}
-
-template<typename Range0, typename Range1, typename Rel, typename InliningPreferences>
-INLINE typename std::enable_if<!IsAFiniteRange<Range0>::value && IsAFiniteRange<Range1>::value, pair<Range0, Range1>>::type
-find_mismatch_impl(Range0 r0, Range1 r1, Rel rel, InliningPreferences p) {
-  auto iter0 = get_begin(r0);
-  while (!is_empty(r1) && rel(iter0, get_begin(r1))) {
-    iter0 = successor(iter0), r1 = next(r1);
-  }
-  return range2::make_pair(make_range(iter0, NotPresent{}, NotPresent{}), r1);
-}
-
-template<typename Range0, typename Range1, typename Rel, typename InliningPreferences>
-INLINE typename std::enable_if<IsAFiniteRange<Range0>::value && IsAFiniteRange<Range1>::value && !(IsACountedRange<Range0>::value && IsACountedRange<Range1>::value), pair<Range0, Range1>>::type
-find_mismatch_impl(Range0 r0, Range1 r1, Rel rel, InliningPreferences p) {
-  while (!is_empty(r0) &&
-         !is_empty(r1) &&
-         rel(get_begin(r0), get_begin(r1))) {
+  while (!is_empty(r0) && !is_empty(r1) && rel(get_begin(r0), get_begin(r1))) {
     r0 = next(r0), r1 = next(r1);
   }
   return range2::make_pair(r0, r1);
@@ -395,45 +341,16 @@ ALWAYS_INLINE_HIDDEN auto find_adjacent_mismatch_input_non_empty(Range r, Rel re
 }
 
 
-
 template<typename Range, typename Rel, typename InliningPreferences>
-ALWAYS_INLINE_HIDDEN typename std::enable_if<!IsAFiniteRange<Range>::value, Range>::type
+ALWAYS_INLINE_HIDDEN Range
 find_adjacent_mismatch_impl(Range r, Rel rel, InliningPreferences p) {
-  auto begin = get_begin(r);
-  auto prev = begin;
+  if(is_empty(r)) return r;
+  auto prev = r; // Initialise prev to something, anything.
   do {
-    prev = begin;
-    begin = successor(begin);
-  } while (rel(prev, begin));
-  return make_range(begin, NotPresent{}, NotPresent{});
-}
-
-template<typename Range, typename Rel, typename InliningPreferences>
-ALWAYS_INLINE_HIDDEN typename std::enable_if<IsAFiniteRange<Range>::value && !IsACountedRange<Range>::value, Range>::type
-find_adjacent_mismatch_impl(Range r, Rel rel, InliningPreferences p) {
-  if (is_empty(r)) return r;
-  auto begin = get_begin(r);
-  auto prev = begin;
-  auto end = get_end(r);
-  do {
-    prev = begin;
-    begin = successor(begin);
-  } while ((begin != end) && rel(prev, begin));
-  return make_range(begin, end, NotPresent{});
-}
-
-template<typename Range, typename Rel, typename InliningPreferences>
-ALWAYS_INLINE_HIDDEN typename std::enable_if<IsACountedRange<Range>::value, Range>::type
-find_adjacent_mismatch_impl(Range r, Rel rel, InliningPreferences p) {
-  if (is_empty(r)) return r;
-  auto begin = get_begin(r);
-  auto prev = begin;
-  auto count = get_count(r);
-  do {
-    prev = begin;
-    begin = successor(begin), count = count - 1;
-  } while (decltype(count){0} != count && rel(prev, begin));
-  return make_range(begin, get_end(r), count);
+    prev = r;
+    r = next(r);
+  } while (!is_empty(r) && rel(get_begin(prev), get_begin(r)));
+  return r;
 }
 
 template<typename Range, typename Rel, typename InliningPreferences>
@@ -480,18 +397,18 @@ ALWAYS_INLINE_HIDDEN bool strictly_increasing_range(Range r, Rel rel) {
 
 template<typename Range, typename Rel, typename InliningPreferences>
 ALWAYS_INLINE_HIDDEN bool increasing_range(Range r, Rel rel, InliningPreferences p) {
-  return relation_preserving(r, complement_converse<Rel>{rel}, p);
+  return relation_preserving(r, make_complement_converse(rel), p);
 }
 
 template<typename Range, typename Rel>
 ALWAYS_INLINE_HIDDEN bool increasing_range(Range r, Rel rel) {
-  return relation_preserving(r, complement_converse<Rel>{rel}, NoInline{});
+  return relation_preserving(r, make_complement_converse(rel), NoInline{});
 }
 
 
 template<typename Range, typename Rel, typename InliningPreferences>
 ALWAYS_INLINE_HIDDEN bool partitioned_impl(Range r, Rel rel, InliningPreferences p) {
-  return is_empty(find_if_impl(find_if_impl(r, rel, p), complement<Rel>{rel}, p));
+  return is_empty(find_if_impl(find_if_impl(r, rel, p), make_complement(rel), p));
 }
 
 template<typename Range, typename Rel, typename InliningPreferences>
@@ -574,6 +491,12 @@ struct TYPE_HIDDEN_VISIBILITY lower_bound_pred {
 };
 
 template<typename Value, typename Rel>
+ALWAYS_INLINE_HIDDEN lower_bound_pred<Value, Rel> make_lower_bound_pred(Value const& v, Rel rel) {
+  return {v, cmove(rel)};
+}
+
+
+template<typename Value, typename Rel>
 struct TYPE_HIDDEN_VISIBILITY upper_bound_pred {
   Value const& v;
   Rel rel;
@@ -583,11 +506,16 @@ struct TYPE_HIDDEN_VISIBILITY upper_bound_pred {
   }
 };
 
+template<typename Value, typename Rel>
+ALWAYS_INLINE_HIDDEN upper_bound_pred<Value, Rel> make_upper_bound_pred(Value const& v, Rel rel) {
+  return {v, cmove(rel)};
+}
+
 } // namespace impl
 
 template<typename Range, typename Rel, typename InliningPreferences>
 ALWAYS_INLINE_HIDDEN auto lower_bound_predicate_impl(Range r, Rel rel, RangeValue<Range> const& a, InliningPreferences p) -> decltype ( partition_point_impl(r, make_derefop(impl::lower_bound_pred<RangeValue<Range>, Rel>{a, rel}), p) ) {
-  return partition_point_impl(r, make_derefop(impl::lower_bound_pred<RangeValue<Range>, Rel>{a, rel}), p);
+  return partition_point_impl(r, make_derefop(impl::make_lower_bound_pred(a, rel)), p);
 }
 
 template<typename Range, typename Rel, typename InliningPreferences>
@@ -603,7 +531,7 @@ ALWAYS_INLINE_HIDDEN auto lower_bound_predicate(Range r, Rel rel, RangeValue<Ran
 
 template<typename Range, typename Rel, typename InliningPreferences>
 ALWAYS_INLINE_HIDDEN auto upper_bound_predicate_impl(Range r, Rel rel, RangeValue<Range> const& a, InliningPreferences p) -> decltype ( partition_point_impl(r, make_derefop(impl::upper_bound_pred<RangeValue<Range>, Rel>{a, rel}), p) ){
-  return partition_point_impl(r, make_derefop(impl::upper_bound_pred<RangeValue<Range>, Rel>{a, rel}), p);
+  return partition_point_impl(r, make_derefop(impl::make_upper_bound_pred(a, rel)), p);
 }
 
 template<typename Range, typename Rel, typename InliningPreferences>
@@ -786,13 +714,14 @@ struct TYPE_DEFAULT_VISIBILITY step_if
 
 template<typename Pred, typename Step>
 ALWAYS_INLINE_HIDDEN step_if<Pred, Step> make_step_if(Pred p, Step s) {
-  return {p, s};
+  return {cmove(p), cmove(s)};
 }
+
 
 template<typename R0, typename R1, typename Step, typename InliningPreferences>
 INLINE pair<R0, R1>
 visit_2_ranges_impl(R0 r0, R1 r1, Step step, InliningPreferences p) {
-  while(!is_empty(r0) && !is_empty(r1)) step(r0, r1);
+  while (!is_empty(r0) && !is_empty(r1)) step(r0, r1);
   return make_pair(r0, r1);
 }
 
@@ -825,7 +754,7 @@ struct TYPE_HIDDEN_VISIBILITY split_if
 
 template<typename Pred, typename Step>
 ALWAYS_INLINE_HIDDEN split_if<Pred, Step> make_split_if(Pred p, Step s) {
-  return {p, s};
+  return {cmove(p), cmove(s)};
 }
 
 
@@ -846,9 +775,8 @@ struct TYPE_HIDDEN_VISIBILITY merge_if
 
 template<typename Rel, typename Step>
 ALWAYS_INLINE_HIDDEN merge_if<Rel, Step> make_merge_if(Rel r, Step s) {
-  return {r, s};
+  return {cmove(r), cmove(s)};
 }
-
 
 template<typename R0, typename R1, typename R2, typename Step, typename InliningPreferences>
 INLINE triple<R0, R1, R2>

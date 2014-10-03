@@ -526,14 +526,14 @@ ALWAYS_INLINE_HIDDEN bool lexicographical_equal(Range0 r0, Range1 r1) {
 
 template<typename Range0, typename Range1, typename Rel>
 ALWAYS_INLINE_HIDDEN bool lexicographical_compare_impl(Range0 r0, Range1 r1, Rel rel) {
-  auto tmp = find_mismatch_impl(r0, r1, make_derefop(make_equivalent(rel)));
+  auto tmp = find_mismatch_impl(r0, r1, make_equivalent(rel));
   if (is_empty(tmp.m1)) {
     return false;
   } else if (is_empty(tmp.m0)) {
     return true;
   } else {
     // Therefore *get_begin(tmp.m0) is not equivalent to *get_begin(tmp.m1).
-    return rel(*get_begin(tmp.m0), *get_begin(tmp.m1));
+    return rel(get_begin(tmp.m0), get_begin(tmp.m1));
   }
 }
 
@@ -546,7 +546,7 @@ ALWAYS_INLINE_HIDDEN bool lexicographical_compare(Range0 r0, Range1 r1, Rel rel)
 template<typename Range0, typename Range1>
 ALWAYS_INLINE_HIDDEN bool lexicographical_less(Range0 r0, Range1 r1) {
   static_assert(std::is_same<RangeValue<Range0>, RangeValue<Range1>>::value, "Both ranges must have the same value type");
-  return lexicographical_compare(r0, r1, std::less<RangeValue<Range0>>{});
+  return lexicographical_compare(r0, r1, make_derefop(std::less<RangeValue<Range0>>{}));
 }
 
 struct TYPE_DEFAULT_VISIBILITY copy_step
@@ -640,7 +640,7 @@ struct TYPE_HIDDEN_VISIBILITY merge_if
   Step step;
   template<typename I0, typename I1, typename O>
   ALWAYS_INLINE_HIDDEN void operator()(I0& i0, I1& i1, O& o) {
-    if (rel(*get_begin(i1), *get_begin(i0))) {
+    if (rel(get_begin(i1), get_begin(i0))) {
       step(i1, o);
     } else {
       step(i0, o);

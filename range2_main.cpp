@@ -1845,7 +1845,7 @@ namespace {
     auto unbounded0 = make_range(&arr[0], NotPresent{}, NotPresent{});
     auto unbounded1 = make_range(&arr2[0], NotPresent{}, NotPresent{});
     auto bounded0 = make_range(&arr3[0], NotPresent{}, ARR_LEN);
-    auto pred = [](int, int) { return true; };
+    auto pred = make_derefop([](int, int) { return true; });
     visit_3_ranges(unbounded0, unbounded1, bounded0, make_merge_if(pred, copy_step{}));
     assert(lexicographical_equal(make_range(&arr2[0], NotPresent{}, ARR_LEN), make_range(&arr3[0], NotPresent{}, ARR_LEN)));
 

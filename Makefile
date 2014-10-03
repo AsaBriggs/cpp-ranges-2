@@ -1,8 +1,8 @@
 CC=g++
 CFLAGS=-c -Wall -pedantic --std=c++11 -Os
 LDFLAGS=
-INCLUDES=compiler_specifics.h comparisons.h iterator_adapter.h range2.h algorithms.h
-SOURCES=compiler_specifics.cpp comparisons.cpp iterator_adapter.cpp range2.cpp algorithms.cpp range2_main.cpp 
+INCLUDES=compiler_specifics.h comparisons.h iterator_adapter.h range2.h algorithms.h timer.h
+SOURCES=compiler_specifics.cpp comparisons.cpp iterator_adapter.cpp range2.cpp algorithms.cpp timer.cpp range2_main.cpp 
 OBJECTS=$(SOURCES:.cpp=.o)
 EXECUTABLE=range2
 

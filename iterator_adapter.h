@@ -108,10 +108,10 @@ constexpr ALWAYS_INLINE_HIDDEN I predecessor(I x) { return --x; }
 
 
 template<typename Iterator, typename Enable=void>
-struct TYPE_HIDDEN_VISIBILITY SpecialisedSink : std::false_type {};
+struct TYPE_HIDDEN_VISIBILITY AutomaticallyGenerateSink : std::true_type {};
 
 template<typename T, typename I>
-ALWAYS_INLINE_HIDDEN typename std::enable_if<!SpecialisedSink<I>::value, void>::type
+ALWAYS_INLINE_HIDDEN typename std::enable_if<AutomaticallyGenerateSink<I>::value, void>::type
 sink(I const& x, T&& y) {
   static_assert(std::is_convertible<T, ValueType<I>>::value, "Value to sink must be convertible to value type of Iterator");
   *x = std::forward<T>(y);
@@ -234,7 +234,7 @@ struct GenerateDerivedComparisonOperations<iterator<B>> : std::true_type {};
 
 
 template<IteratorBasis I>
-struct TYPE_HIDDEN_VISIBILITY SpecialisedSink<iterator<I>> : std::true_type {};
+struct TYPE_HIDDEN_VISIBILITY AutomaticallyGenerateSink<iterator<I>> : std::false_type {};
 
 template<typename... T, IteratorBasis I>
 ALWAYS_INLINE_HIDDEN auto sink(iterator<I> const& x, T&&... y) -> decltype( sink(x.basis, std::forward<T>(y)...) ) {
@@ -274,7 +274,7 @@ struct TYPE_DEFAULT_VISIBILITY iterator_basis {
 
 
 template<InputIterator I>
-struct TYPE_HIDDEN_VISIBILITY SpecialisedSink<iterator_basis<I>> : std::true_type {};
+struct TYPE_HIDDEN_VISIBILITY AutomaticallyGenerateSink<iterator_basis<I>> : std::false_type {};
 
 template<typename... T, InputIterator I>
 ALWAYS_INLINE_HIDDEN auto sink(iterator_basis<I> const& x, T&&... y) -> decltype( sink(state(x), std::forward<T>(y)...) ) {
@@ -314,7 +314,7 @@ struct TYPE_DEFAULT_VISIBILITY reverse_iterator_basis {
 
 
 template<BidirectionalIterator I>
-struct TYPE_HIDDEN_VISIBILITY SpecialisedSink<reverse_iterator_basis<I>> : std::true_type {};
+struct TYPE_HIDDEN_VISIBILITY AutomaticallyGenerateSink<reverse_iterator_basis<I>> : std::false_type {};
 
 template<typename... T, BidirectionalIterator I>
 ALWAYS_INLINE_HIDDEN auto sink(reverse_iterator_basis<I> const& x, T&&... y) -> decltype( sink(state(successor(x)), std::forward<T>(y)...) ) {
@@ -359,7 +359,7 @@ struct TYPE_DEFAULT_VISIBILITY skip_iterator_basis {
 
 
 template<InputIterator I, DifferenceType<I> N>
-struct TYPE_HIDDEN_VISIBILITY SpecialisedSink<skip_iterator_basis<I, N>> : std::true_type {};
+struct TYPE_HIDDEN_VISIBILITY AutomaticallyGenerateSink<skip_iterator_basis<I, N>> : std::false_type {};
 
 template<typename... T, InputIterator I, DifferenceType<I> N>
 ALWAYS_INLINE_HIDDEN auto sink(skip_iterator_basis<I, N> const& x, T&&... y) -> decltype( sink(state(x), std::forward<T>(y)...) ) {

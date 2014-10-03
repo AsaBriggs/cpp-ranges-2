@@ -913,140 +913,9 @@ namespace {
   template<typename T>
   SumType sumOver(T x) {
     SumType tmp = 0;
-    while (!is_empty(x)) {
-      tmp += *get_begin(x);
-      x = successor(x);
-    }
+    for_each(x, make_derefop([&tmp](SumType x) { tmp += x; }));
     return tmp;
   }
-
-  template<typename T>
-  SumType unrolledSumOver1(T x) {
-    auto count = get_count(x);
-    auto begin = get_begin(x);
-    SumType tmp = 0;
-    while (decltype(count){0} != count) {
-      tmp += *begin++;
-      --count;
-    }
-
-    return tmp;
-  }
-
-  template<typename T>
-  SumType unrolledSumOver2(T x) {
-    SumType tmp0 = 0;
-    SumType tmp1 = 0;
-    auto count = get_count(x);
-    auto cBy2 = count/2;
-    count -= cBy2*2;
-    auto begin = get_begin(x);
-    while (decltype(cBy2){0} != cBy2) {
-      tmp0 += *begin;
-      tmp1 += *(begin+1);
-      begin += 2;
-      --cBy2;
-    }
-    if (decltype(count){0} != count) {
-      tmp0 += *begin;
-    }
-
-    return tmp0+tmp1;
-  }
-
-  template<typename T>
-  SumType unrolledSumOver4(T x) {
-    SumType tmp0 = 0;
-    SumType tmp1 = 0;
-    SumType tmp2 = 0;
-    SumType tmp3 = 0;
-    auto count = get_count(x);
-    auto cBy4 = count/4;
-    count -= cBy4*4;
-    auto begin = get_begin(x);
-    while (decltype(cBy4){0} != cBy4) {
-      tmp0 += *begin;
-      tmp1 += *(begin+1);
-      tmp2 += *(begin+2);
-      tmp3 += *(begin+3);
-      begin += 4;
-      --cBy4;
-    }
-    SumType tmp = tmp0 + tmp1 + tmp2 + tmp3;
-    while (decltype(count){0} != count) {
-      tmp += *begin++;
-      --count;
-    }
-
-    return tmp;
-  }
-
-  template<typename T>
-  SumType unrolledSumOver4a(T x) {
-    SumType tmp0 = 0;
-    SumType tmp1 = 0;
-    SumType tmp2 = 0;
-    SumType tmp3 = 0;
-    auto count = get_count(x);
-    auto cBy4 = count/4;
-    count -= cBy4*4;
-    auto range = make_range(get_begin(x), NotPresent{}, NotPresent{});
-    while (decltype(cBy4){0} != cBy4) {
-      auto r1 = successor(range);
-      auto r2 = successor(r1);
-      auto r3 = successor(r2);
-      tmp0 += *get_begin(range);
-      tmp1 += *get_begin(r1);
-      tmp2 += *get_begin(r2);
-      tmp3 += *get_begin(r3);
-      --cBy4;
-      range = successor(r3);
-    }
-    SumType tmp4 = 0;
-    while (decltype(count){0} != count) {
-      tmp4 += *get_begin(range);
-      range = successor(range);
-      --count;
-    }
-
-    return tmp0 + tmp1 + tmp2 + tmp3 + tmp4;
-  }
-
-  template<typename T>
-  SumType unrolledSumOver8(T x) {
-    SumType tmp0 = 0;
-    SumType tmp1 = 0;
-    SumType tmp2 = 0;
-    SumType tmp3 = 0;
-    SumType tmp4 = 0;
-    SumType tmp5 = 0;
-    SumType tmp6 = 0;
-    SumType tmp7 = 0;
-    auto count = get_count(x);
-    auto cBy8 = count/8;
-    count -= cBy8*8;
-    auto begin = get_begin(x);
-    while (decltype(cBy8){0} != cBy8) {
-      tmp0 += *begin;
-      tmp1 += *(begin+1);
-      tmp2 += *(begin+2);
-      tmp3 += *(begin+3);
-      tmp4 += *(begin+4);
-      tmp5 += *(begin+5);
-      tmp6 += *(begin+6);
-      tmp7 += *(begin+7);
-      begin += 8;
-      --cBy8;
-    }
-    SumType tmp = tmp0 + tmp1 + tmp2 + tmp3 + tmp4 + tmp5 + tmp6 + tmp7;
-    while (decltype(count){0} != count) {
-      tmp += *begin++;
-      --count;
-    }
-
-    return tmp;
-  }
-
 
   constexpr int loopTimes = 100;
 
@@ -1065,16 +934,6 @@ namespace {
   template<typename T>
   void performanceTest(T x, char const* const description) {
     performanceTestImpl(x, description, "", [](T x) -> SumType { return sumOver(x); });
-  }
-
-  template<typename T>
-  void performanceTestUnrolled(T x, char const* const description) {
-    performanceTestImpl(x, description, "", [](T x) -> SumType { return sumOver(x); });
-    performanceTestImpl(x, description, " Unrolled (1)", [](T x) -> SumType { return unrolledSumOver1(x); });
-    performanceTestImpl(x, description, " Unrolled (2)", [](T x) -> SumType { return unrolledSumOver2(x); });
-    performanceTestImpl(x, description, " Unrolled (4)", [](T x) -> SumType { return unrolledSumOver4(x); });
-    performanceTestImpl(x, description, " Unrolled (4a)", [](T x) -> SumType { return unrolledSumOver4a(x); });
-    performanceTestImpl(x, description, " Unrolled (8)", [](T x) -> SumType { return unrolledSumOver8(x); });
   }
 
   template<int LinearSearchLength, typename T>
@@ -1116,14 +975,14 @@ namespace {
     performanceTest(r3, " Bounded wrapped Range");
     performanceTest(reverse(r3), " Reverse Bounded wrapped Range");
 
-    performanceTestUnrolled(r1, " Counted Range");
-    performanceTestUnrolled(reverse(r1), " Reversed Counted Range");
-    performanceTestUnrolled(r2, " Bounded and Counted Range");
-    performanceTestUnrolled(reverse(r2), " Reversed Bounded and Counted Range");
-    performanceTestUnrolled(r4, " Counted wrapped Range");
-    performanceTestUnrolled(reverse(r4), " Reversed Counted wrapped Range");
-    performanceTestUnrolled(r5, " Bounded and Counted wrapped Range");
-    performanceTestUnrolled(reverse(r5), " Reverse Bounded and Counted wrapped Range");
+    performanceTest(r1, " Counted Range");
+    performanceTest(reverse(r1), " Reversed Counted Range");
+    performanceTest(r2, " Bounded and Counted Range");
+    performanceTest(reverse(r2), " Reversed Bounded and Counted Range");
+    performanceTest(r4, " Counted wrapped Range");
+    performanceTest(reverse(r4), " Reversed Counted wrapped Range");
+    performanceTest(r5, " Bounded and Counted wrapped Range");
+    performanceTest(reverse(r5), " Reverse Bounded and Counted wrapped Range");
 
     performanceTestImpl(std::cref(v), "std::accumulate", "", [](std::reference_wrapper<V const> x) -> SumType { return std::accumulate(x.get().cbegin(), x.get().cend(), SumType(0)); });
 

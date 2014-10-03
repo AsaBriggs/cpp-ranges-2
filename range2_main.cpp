@@ -1077,8 +1077,8 @@ namespace {
     performanceTestImpl(x, description, " Unrolled (8)", [](T x) -> SumType { return unrolledSumOver8(x); });
   }
 
-  template<int LinearSearchLength, typename T, typename InliningPreferences>
-  void performanceTestPartitionPoint(T x, char const* const description, InliningPreferences p, std::vector<SumType> const& toFind) {
+  template<int LinearSearchLength, typename T>
+  void performanceTestPartitionPoint(T x, char const* const description, std::vector<SumType> const& toFind) {
     timer t;
     t.start();
     SumType sum = 0;
@@ -1089,7 +1089,7 @@ namespace {
     for (int i=0; i < toFindSize; ++i) {
       s = toFind[i];
       //auto tmp = partition_point(x, pred, p);
-      auto tmp = bisecting_search<T, LinearSearchLength>(x, pred, impl::Halve{}, p);
+      auto tmp = bisecting_search<T, LinearSearchLength>(x, pred, impl::Halve{});
       if (!is_empty(tmp.m1)) sum += *get_begin(tmp.m1);
     }
     auto time = t.stop();
@@ -1130,21 +1130,11 @@ namespace {
     V v2 = v;
     std::random_shuffle(v2.begin(), v2.end());
 
-    performanceTestPartitionPoint<0>(r1, " Counted Range NoInline 0", NoInline{}, v2);
-    performanceTestPartitionPoint<0>(r1, " Counted Range Inline2 0", Inline2{}, v2);
-
-    performanceTestPartitionPoint<8>(r1, " Counted Range NoInline 8", NoInline{}, v2);
-    performanceTestPartitionPoint<8>(r1, " Counted Range Inline2 8", Inline2{}, v2);
-
-    performanceTestPartitionPoint<16>(r1, " Counted Range NoInline 16", NoInline{}, v2);
-    performanceTestPartitionPoint<16>(r1, " Counted Range Inline2 16", Inline2{}, v2);
-
-    performanceTestPartitionPoint<32>(r1, " Counted Range NoInline 32", NoInline{}, v2);
-    performanceTestPartitionPoint<32>(r1, " Counted Range Inline2 32", Inline2{}, v2);
-
-    performanceTestPartitionPoint<64>(r1, " Counted Range NoInline 64", NoInline{}, v2);
-    performanceTestPartitionPoint<64>(r1, " Counted Range Inline2 64", Inline2{}, v2);
-
+    performanceTestPartitionPoint<0>(r1, " Counted Range 0", v2);
+    performanceTestPartitionPoint<8>(r1, " Counted Range 8", v2);
+    performanceTestPartitionPoint<16>(r1, " Counted Range 16", v2);
+    performanceTestPartitionPoint<32>(r1, " Counted Range 32", v2);
+    performanceTestPartitionPoint<64>(r1, " Counted Range 64", v2);
    }
 
   template<typename Op>
@@ -1179,23 +1169,11 @@ namespace {
     template<typename R>
     void operator()(R r) const {
       if (is_empty(r)) {
-        {
-          auto tmp = for_each(r, Summation<int>{0});
-          assert(tmp.m0.count == 0);
-        }
-        {
-          auto tmp = for_each(r, Summation<int>{0}, Inline4{});
-          assert(tmp.m0.count == 0);
-        }
+        auto tmp = for_each(r, Summation<int>{0});
+        assert(tmp.m0.count == 0);
       } else {
-        {
-          auto tmp = for_each(r, Summation<int>{0});
-          assert(tmp.m0.count == 39*20);
-        }
-        {
-          auto tmp = for_each(r, Summation<int>{0}, Inline4{});
-          assert(tmp.m0.count == 39*20);
-        }
+        auto tmp = for_each(r, Summation<int>{0});
+        assert(tmp.m0.count == 39*20);
       }
     }
   };
@@ -1220,14 +1198,6 @@ namespace {
           auto tmp = find_if(x, FindEqual<int>{-1});
           assert(is_empty(tmp));
         }
-        {
-          auto tmp = find_if(x, FindEqual<int>{5}, Inline4{});
-          assert(is_empty(tmp));
-        }
-        {
-          auto tmp = find_if(x, FindEqual<int>{-1}, Inline4{});
-          assert(is_empty(tmp));
-        }
       } else {
         {
           auto tmp = find_if(x, FindEqual<int>{5});
@@ -1236,15 +1206,6 @@ namespace {
         }
         {
           auto tmp = find_if(x, FindEqual<int>{-1});
-          assert(is_empty(tmp));
-        }
-        {
-          auto tmp = find_if(x, FindEqual<int>{5}, Inline4{});
-          assert(!is_empty(tmp));
-          assert(5 == *get_begin(tmp));
-        }
-        {
-          auto tmp = find_if(x, FindEqual<int>{-1}, Inline4{});
           assert(is_empty(tmp));
         }
       }
@@ -1268,10 +1229,6 @@ namespace {
           assert(tmp == 0);
         }
         {
-          auto tmp = count_if(x, FindLessThan<int>{10}, 0, Inline4{});
-          assert(tmp == 0);
-        }
-        {
           auto tmp = count_if(x, FindLessThan<int>{20}, 0);
           assert(tmp == 0);
         }
@@ -1282,10 +1239,6 @@ namespace {
       } else {
         {
           auto tmp = count_if(x, FindLessThan<int>{10}, 0);
-          assert(tmp == 10);
-        }
-        {
-          auto tmp = count_if(x, FindLessThan<int>{10}, 0, Inline4{});
           assert(tmp == 10);
         }
         {
@@ -1315,27 +1268,13 @@ namespace {
     template<typename R>
     void operator()(R r) const {
       if (is_empty(r)) {
-        {
-          auto tmp = reduce(r, Add{}, Deref{}, RangeValue<R>(0));
-          assert(0 == tmp.m0);
-          assert(is_empty(tmp.m1));
-        }
-        {
-          auto tmp = reduce(r, Add{}, Deref{}, RangeValue<R>(0), Inline4{});
-          assert(0 == tmp.m0);
-          assert(is_empty(tmp.m1));
-        }
+        auto tmp = reduce(r, Add{}, Deref{}, RangeValue<R>(0));
+        assert(0 == tmp.m0);
+        assert(is_empty(tmp.m1));
       } else {
-        {
-          auto tmp = reduce(r, Add{}, Deref{}, RangeValue<R>(0));
-          assert(39*20 == tmp.m0);
-          assert(is_empty(tmp.m1));
-        }
-        {
-          auto tmp = reduce(r, Add{}, Deref{}, RangeValue<R>(0), Inline4{});
-          assert(39*20 == tmp.m0);
-          assert(is_empty(tmp.m1));
-        }
+        auto tmp = reduce(r, Add{}, Deref{}, RangeValue<R>(0));
+        assert(39*20 == tmp.m0);
+        assert(is_empty(tmp.m1));
       }
     }
   };
@@ -1346,16 +1285,9 @@ namespace {
       if (is_empty(r)) {
         // Can't test empty ranges
       } else {
-        {
-          auto tmp = reduce_nonempty(r, Add{}, Deref{});
-          assert(39*20 == tmp.m0);
-          assert(is_empty(tmp.m1));
-        }
-        {
-          auto tmp = reduce_nonempty(r, Add{}, Deref{}, Inline4{});
-          assert(39*20 == tmp.m0);
-          assert(is_empty(tmp.m1));
-        }
+        auto tmp = reduce_nonempty(r, Add{}, Deref{});
+        assert(39*20 == tmp.m0);
+        assert(is_empty(tmp.m1));
       }
     }
   };
@@ -1364,28 +1296,14 @@ namespace {
     template<typename R>
     void operator()(R r) const {
       if (is_empty(r)) {
-        {
-          auto tmp = reduce_nonzeroes(r, Add{}, Deref{}, RangeValue<R>(0));
-          assert(0 == tmp.m0);
-          assert(is_empty(tmp.m1));
-        }
-        {
-          auto tmp = reduce_nonzeroes(r, Add{}, Deref{}, RangeValue<R>(0), Inline4{});
-          assert(0 == tmp.m0);
-          assert(is_empty(tmp.m1));
-        }
+         auto tmp = reduce_nonzeroes(r, Add{}, Deref{}, RangeValue<R>(0));
+        assert(0 == tmp.m0);
+        assert(is_empty(tmp.m1));
       } else {
-        {
-          auto tmp = reduce_nonzeroes(r, Add{}, Deref{}, RangeValue<R>(0));
-          assert(39*20 == tmp.m0);
-          assert(is_empty(tmp.m1));
-        }
-        {
-          auto tmp = reduce_nonzeroes(r, Add{}, Deref{}, RangeValue<R>(0), Inline4{});
-          assert(39*20 == tmp.m0);
-          assert(is_empty(tmp.m1));
-        }
-      }
+        auto tmp = reduce_nonzeroes(r, Add{}, Deref{}, RangeValue<R>(0));
+        assert(39*20 == tmp.m0);
+        assert(is_empty(tmp.m1));
+       }
     }
   };
 
@@ -1407,13 +1325,6 @@ namespace {
       }
     };
 
-    struct FindOpInlinePreferences {
-      template<typename R0, typename R1, typename Op>
-      auto operator()(R0 r0, R1 r1, Op op) -> decltype( find_mismatch(r0, r1, op) ) {
-        return find_mismatch(r0, r1, op, Inline4{});
-      }
-    };
-
     template<typename R0, typename R1, typename Op, typename FindOp>
     void testNonEmpty(R0 r0, R1 r1, Op op, FindOp fo) const {
       auto tmp = fo(r0, r1, op);
@@ -1426,9 +1337,7 @@ namespace {
     template<typename R0, typename R1, typename Op>
     void testNonEmpties(R0 r0, R1 r1, Op op) const {
       testNonEmpty(r0, r1, op, FindOp{});
-      testNonEmpty(r0, r1, op, FindOpInlinePreferences{});
       testNonEmpty(r1, r0, op, FindOp{});
-      testNonEmpty(r1, r0, op, FindOpInlinePreferences{});
     }
 
     template<typename R>
@@ -1521,11 +1430,6 @@ namespace {
       auto x = find_adjacent_mismatch_input_non_empty(make_range(&arr[0], &arr[0] + 6, 6), op);
       testAdjacentMismatchInputResult(x);
     }
-
-    {
-      auto x = find_adjacent_mismatch_input_non_empty(make_range(&arr[0], &arr[0] + 6, 6), op, Inline4{});
-      testAdjacentMismatchInputResult(x);
-    }
   }
 
   template<typename T>
@@ -1557,11 +1461,6 @@ namespace {
 
     {
       auto x = find_adjacent_mismatch(make_range(&arr[0], &arr[0] + 6, 6), op);
-      testAdjacentMismatchResult(x);
-    }
-
-    {
-      auto x = find_adjacent_mismatch(make_range(&arr[0], &arr[0] + 6, 6), op, Inline4{});
       testAdjacentMismatchResult(x);
     }
 
@@ -1599,10 +1498,8 @@ namespace {
     void operator()(R r) const {
       auto rel = make_derefop(std::less<int>{});
       assert(strictly_increasing_range(r, rel));
-      assert(strictly_increasing_range(r, rel, Inline4{}));
       auto rel2 = make_derefop(std::greater<int>{});
       assert(is_empty(r) == strictly_increasing_range(r, rel2));
-      assert(is_empty(r) == strictly_increasing_range(r, rel2, Inline4{}));
     }
   };
 
@@ -1636,7 +1533,6 @@ namespace {
     // Test the input iterator path.
     typedef iterator<input_iterator_basis<int*>> InputIter;
     assert(strictly_increasing_range(make_range(InputIter{{&arr[0]}}, NotPresent{}, 5), rel));
-    assert(strictly_increasing_range(make_range(InputIter{{&arr[0]}}, NotPresent{}, 5), rel, NoInline{}));
     assert(!strictly_increasing_range(make_range(InputIter{{&arr[0]}}, NotPresent{}, 7), rel));
   }
 
@@ -1645,10 +1541,8 @@ namespace {
     void operator()(R r) const {
       auto rel = make_derefop(std::less<int>{});
       assert(increasing_range(r, rel));
-      assert(increasing_range(r, rel, Inline4{}));
       auto rel2 = make_derefop(std::greater<int>{});
       assert(is_empty(r) == increasing_range(r, rel2));
-      assert(is_empty(r) == increasing_range(r, rel2, Inline4{}));
     }
   };
 
@@ -1660,7 +1554,6 @@ namespace {
     // Test the input iterator path.
     typedef iterator<input_iterator_basis<int*>> InputIter;
     assert(increasing_range(make_range(InputIter{{&arr[0]}}, NotPresent{}, 5), rel));
-    assert(increasing_range(make_range(InputIter{{&arr[0]}}, NotPresent{}, 5), rel, NoInline{}));
     assert(increasing_range(make_range(InputIter{{&arr[0]}}, NotPresent{}, 7), rel));
   }
 
@@ -1671,7 +1564,6 @@ namespace {
       auto greaterThan = [](int x) { return x > 10; };
       auto pred = make_derefop(greaterThan);
       assert(partitioned(r, pred));
-      assert(partitioned(r, pred, NoInline{}));
     }
   };
 
@@ -1681,12 +1573,10 @@ namespace {
     auto pred = make_derefop(cmp);
 
     assert(!partitioned(make_range(&arr[0], NotPresent{}, 7), pred));
-    assert(!partitioned(make_range(&arr[0], NotPresent{}, 7), pred, NoInline{}));
 
     // Test the input iterator path.
     typedef iterator<input_iterator_basis<int*>> InputIter;
     assert(!partitioned(make_range(InputIter{{&arr[0]}}, NotPresent{}, 7), pred));
-    assert(!partitioned(make_range(InputIter{{&arr[0]}}, NotPresent{}, 7), pred, NoInline{}));
     assert(partitioned(make_range(InputIter{{&arr[0]}}, NotPresent{}, 5), pred));
   }
 
@@ -1699,16 +1589,9 @@ namespace {
       auto greaterEqualCount = [](int x) { return x >= count; };
       auto pred2 = make_derefop(greaterEqualCount);
       if (is_empty(r)) {
-        {
-          auto tmp = partition_point(r, pred);
-          assert(is_empty(tmp.m0));
-          assert(is_empty(tmp.m1));
-        }
-        {
-          auto tmp = partition_point(r, pred, NoInline{});
-          assert(is_empty(tmp.m0));
-          assert(is_empty(tmp.m1));
-        }
+        auto tmp = partition_point(r, pred);
+        assert(is_empty(tmp.m0));
+        assert(is_empty(tmp.m1));
       } else {
         {
           auto tmp = partition_point(r, pred);
@@ -1717,19 +1600,7 @@ namespace {
           assert(11 == *get_begin(tmp.m1));
         }
         {
-          auto tmp = partition_point(r, pred, NoInline{});
-          assert(!is_empty(tmp.m0));
-          assert(!is_empty(tmp.m1));
-          assert(11 == *get_begin(tmp.m1));
-        }
-
-        {
           auto tmp = partition_point(r, pred2);
-          assert(!is_empty(tmp.m0));
-          assert(is_empty(tmp.m1));
-        }
-        {
-          auto tmp = partition_point(r, pred2, NoInline{});
           assert(!is_empty(tmp.m0));
           assert(is_empty(tmp.m1));
         }
@@ -1837,7 +1708,6 @@ namespace {
         testLexicographicalLessImpl(r, make_range(begin, NotPresent{}, NotPresent{}));
       } else {
         assert(!lexicographical_less(r, r));
-        assert(!lexicographical_less(r, r, NoInline{}));
 
         // Different lengths but values within successor(r) are greater by one
         testLexicographicalLessImpl(r, successor(r));

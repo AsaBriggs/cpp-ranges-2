@@ -1439,7 +1439,7 @@ namespace {
       auto bounded_counted = make_range(x.begin(), x.end(), x.size());
       auto unbounded = make_range(x.begin(), NotPresent{}, NotPresent{});
 
-      auto op = DerefOp<std::equal_to<int>>{{}};
+      auto op = make_derefop(std::equal_to<int>{});
       if (is_empty(r)) {
         {
           auto tmp = find_mismatch(r, bounded, op);
@@ -1501,7 +1501,7 @@ namespace {
 
   void testFindAdjacentMismatchInput() {
     int arr[] = {1, 2, 3, 4, 5, 5, 6};
-    auto op = DerefOp<std::less<int>>{{}};
+    auto op = make_derefop(std::less<int>{});
     {
       auto x = find_adjacent_mismatch_input_non_empty(make_range(&arr[0], NotPresent{}, NotPresent{}), op);
       testAdjacentMismatchInputResult(x);
@@ -1536,7 +1536,7 @@ namespace {
 
   void testFindAdjacentMismatch() {
     int arr[] = {1, 2, 3, 4, 5, 5, 6};
-    auto op = DerefOp<std::less<int>>{{}};
+    auto op = make_derefop(std::less<int>{});
     // Unbounded
     {
       auto x = find_adjacent_mismatch(make_range(&arr[0], NotPresent{}, NotPresent{}), op);
@@ -1597,10 +1597,10 @@ namespace {
   struct TestRelationPreservingSIR {
     template<typename R>
     void operator()(R r) const {
-      auto rel = DerefOp<std::less<int>>{{}};
+      auto rel = make_derefop(std::less<int>{});
       assert(strictly_increasing_range(r, rel));
       assert(strictly_increasing_range(r, rel, Inline4{}));
-      auto rel2 = DerefOp<std::greater<int>>{{}};
+      auto rel2 = make_derefop(std::greater<int>{});
       assert(is_empty(r) == strictly_increasing_range(r, rel2));
       assert(is_empty(r) == strictly_increasing_range(r, rel2, Inline4{}));
     }
@@ -1630,7 +1630,7 @@ namespace {
 
   void testRelationPreservingSIR() {
     int arr[] = {0, 1, 2, 3, 4, 4, 5};
-    auto rel = DerefOp<std::less<int>>{{}};
+    auto rel = make_derefop(std::less<int>{});
     assert(!strictly_increasing_range(make_range(&arr[0], &arr[0] + 7, NotPresent{}), rel));
 
     // Test the input iterator path.
@@ -1643,10 +1643,10 @@ namespace {
   struct TestIncreasingRange {
     template<typename R>
     void operator()(R r) const {
-      auto rel = DerefOp<std::less<int>>{{}};
+      auto rel = make_derefop(std::less<int>{});
       assert(increasing_range(r, rel));
       assert(increasing_range(r, rel, Inline4{}));
-      auto rel2 = DerefOp<std::greater<int>>{{}};
+      auto rel2 = make_derefop(std::greater<int>{});
       assert(is_empty(r) == increasing_range(r, rel2));
       assert(is_empty(r) == increasing_range(r, rel2, Inline4{}));
     }
@@ -1654,7 +1654,7 @@ namespace {
 
   void testIncreasingRange() {
     int arr[] = {0, 1, 2, 3, 4, 4, 5};
-    auto rel = DerefOp<std::less<int>>{{}};
+    auto rel = make_derefop(std::less<int>{});
     assert(increasing_range(make_range(&arr[0], &arr[0] + 7, NotPresent{}), rel));
 
     // Test the input iterator path.
@@ -1669,7 +1669,7 @@ namespace {
     void operator()(R r) const {
         // Parition is false before true
       auto greaterThan = [](int x) { return x > 10; };
-      auto pred = DerefOp<decltype(greaterThan)>{greaterThan};
+      auto pred = make_derefop(greaterThan);
       assert(partitioned(r, pred));
       assert(partitioned(r, pred, NoInline{}));
     }
@@ -1678,7 +1678,7 @@ namespace {
   void testPartitioned() {
     int arr[] = {0, 1, 2, 3, 4, 3, 3};
     auto cmp = [](int x) { return x > 3; };
-    auto pred = DerefOp<decltype(cmp)>{cmp};
+    auto pred = make_derefop(cmp);
 
     assert(!partitioned(make_range(&arr[0], NotPresent{}, 7), pred));
     assert(!partitioned(make_range(&arr[0], NotPresent{}, 7), pred, NoInline{}));
@@ -1694,10 +1694,10 @@ namespace {
     template<typename R>
     void operator()(R r) const {
       auto greaterThan10 = [](int x) { return x > 10; };
-      auto pred = DerefOp<decltype(greaterThan10)>{greaterThan10};
+      auto pred = make_derefop(greaterThan10);
 
       auto greaterEqualCount = [](int x) { return x >= count; };
-      auto pred2 = DerefOp<decltype(greaterEqualCount)>{greaterEqualCount};
+      auto pred2 = make_derefop(greaterEqualCount);
       if (is_empty(r)) {
         {
           auto tmp = partition_point(r, pred);

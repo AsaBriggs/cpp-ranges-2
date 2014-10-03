@@ -26,7 +26,7 @@ struct TYPE_HIDDEN_VISIBILITY Inline8 {};
 
 template<typename Op>
 // Requires UnaryOperation(Op)
-struct TYPE_HIDDEN_VISIBILITY DerefOp
+struct TYPE_HIDDEN_VISIBILITY deref_op
 {
   Op op;
 
@@ -38,7 +38,7 @@ struct TYPE_HIDDEN_VISIBILITY DerefOp
 };
 
 template<typename Op>
-ALWAYS_INLINE_HIDDEN DerefOp<Op> make_derefop(Op op) {
+ALWAYS_INLINE_HIDDEN deref_op<Op> make_derefop(Op op) {
   return {cmove(op)};
 }
 
